@@ -5,6 +5,10 @@ VisualStudioVersion = 17.9.34622.214
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Restoran", "Restoran\Restoran.csproj", "{8587BBC5-1BE4-41C8-95FB-440453296D13}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Server\Server.csproj", "{4CB4B6C0-8711-4991-8326-DB39113324E9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Konobar", "Konobar\Konobar.csproj", "{A8BD9154-2C6E-4AC2-89F2-E57721FEE1D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{8587BBC5-1BE4-41C8-95FB-440453296D13}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8587BBC5-1BE4-41C8-95FB-440453296D13}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8587BBC5-1BE4-41C8-95FB-440453296D13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CB4B6C0-8711-4991-8326-DB39113324E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CB4B6C0-8711-4991-8326-DB39113324E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CB4B6C0-8711-4991-8326-DB39113324E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CB4B6C0-8711-4991-8326-DB39113324E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8BD9154-2C6E-4AC2-89F2-E57721FEE1D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8BD9154-2C6E-4AC2-89F2-E57721FEE1D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8BD9154-2C6E-4AC2-89F2-E57721FEE1D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8BD9154-2C6E-4AC2-89F2-E57721FEE1D0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
