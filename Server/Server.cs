@@ -28,27 +28,27 @@ namespace Server
             serverSocketUDP.Bind(serverEPUdp);
 
             ///ZA TCP KONEKCIJU
-            //Console.WriteLine($"Server je pokrenut i ceka poruku na: {serverEPTcp}");
-            //serverSocketTCP.Listen(5);
-            //Console.WriteLine($"Server je stavljen u stanje osluskivanja i ocekuje komunikaciju na {serverEPTcp}");
-            //Socket acceptedSocket = serverSocketTCP.Accept();
-            //IPEndPoint clientEP = acceptedSocket.RemoteEndPoint as IPEndPoint;
-            //Console.WriteLine($"Povezao se novi klijent! Njegova adresa je {clientEP}");
+            Console.WriteLine($"Server je pokrenut i ceka poruku na: {serverEPTcp}");
+            serverSocketTCP.Listen(5);
+            Console.WriteLine($"Server je stavljen u stanje osluskivanja i ocekuje komunikaciju na {serverEPTcp}");
+            Socket acceptedSocket = serverSocketTCP.Accept();
+            IPEndPoint clientEP = acceptedSocket.RemoteEndPoint as IPEndPoint;
+            Console.WriteLine($"Povezao se novi klijent! Njegova adresa je {clientEP}");
 
             BinaryFormatter formatter = new BinaryFormatter();
             List<Sto> stolovi = new List<Sto>();
 
-            byte[] buffer = new byte[1024];
             byte[] prijemniBaferPorudzbina = new byte[1024];
+            byte[] prijemniBaferSto = new byte[1024];
             while (true)
             {
                 try
                 {
-                    int brBajta = serverSocketUDP.ReceiveFrom(prijemniBaferPorudzbina, ref posiljaocEP); // Primamo poruku i podatke o posiljaocu
+                    int brBajta = serverSocketUDP.ReceiveFrom(prijemniBaferSto, ref posiljaocEP); // Primamo poruku i podatke o posiljaocu
                     
                     if (brBajta == 0) break;
 
-                    using (MemoryStream ms = new MemoryStream(prijemniBaferPorudzbina, 0, brBajta))
+                    using (MemoryStream ms = new MemoryStream(prijemniBaferSto, 0, brBajta))
                     {
                         Sto sto = (Sto)formatter.Deserialize(ms);
                         stolovi.Add(sto);
@@ -56,14 +56,23 @@ namespace Server
                     }
 
                     //tcp
-                    //int brBajtaTCP = acceptedSocket.Receive(buffer);
-                    //if (brBajta == 0)
-                    //{
-                    //    Console.WriteLine("Klijent je zavrsio sa radom");
-                    //    break;
-                    //}
-                    //string porukaTCP = Encoding.UTF8.GetString(buffer);
-                    //Console.WriteLine("Porudzbina: " + porukaTCP);
+                    int brBajtaTCP = acceptedSocket.Receive(prijemniBaferPorudzbina);
+                    if (brBajtaTCP == 0)
+                    {
+                        Console.WriteLine("Klijent je zavrsio sa radom");
+                        break;
+                    }
+                    using (MemoryStream ms = new MemoryStream(prijemniBaferPorudzbina, 0, brBajtaTCP))
+                    {
+                        BinaryFormatter bf = new BinaryFormatter();
+                        List<Porudzbina> porudzbine = bf.Deserialize(ms) as List<Porudzbina>;
+                        Console.WriteLine("Primljena porudzbina stola broj " + porudzbine[1].brojStola);
+                        foreach (var p in porudzbine)
+                        {
+                            Console.WriteLine(p.nazivArtikla);
+                        }
+                    }
+
                 }
                 catch (SocketException ex)
                 {

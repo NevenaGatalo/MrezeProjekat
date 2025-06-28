@@ -15,5 +15,6 @@ namespace Biblioteka
         public Kategorija kategorija { get; set;}
         public int cena { get; set; }
         public StatusPorudzbina status { get; set; }
+        public int brojStola { get; set; }
     }
 }

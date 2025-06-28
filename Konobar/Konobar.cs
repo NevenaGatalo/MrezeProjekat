@@ -19,18 +19,18 @@ namespace Konobar
         {
 
             Socket clientSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001);
+            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50001);
 
 
             Socket clientSocketUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
+            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
            
             EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
 
-            //Console.WriteLine("Klijent je spreman za povezivanje sa serverom, kliknite enter");
-            //Console.ReadKey();
-            //clientSocketTCP.Connect(destinationEPTcp);
-            //Console.WriteLine("Klijent je uspesno povezan sa serverom!");
+            Console.WriteLine("Konobar je spreman za povezivanje sa serverom, kliknite enter");
+            Console.ReadKey();
+            clientSocketTCP.Connect(destinationEPTcp);
+            Console.WriteLine("Klijent je uspesno povezan sa serverom!");
 
             while (true)
             {
@@ -46,11 +46,12 @@ namespace Konobar
 
 
                 Console.WriteLine("\nUnos porudzbina za sto:");
-                Porudzbina porudzbina = new Porudzbina();
+                
                 List<Porudzbina> porudzbine = new List<Porudzbina>();
                 for (int i = 0; i < brojGostiju; i++)
                 {
-                    Console.WriteLine("Porudzbina za gosta br " + i+1);
+                    Porudzbina porudzbina = new Porudzbina();
+                    Console.WriteLine("Porudzbina za gosta br. " + i+1);
                     Console.WriteLine("Naziv artikla: ");
                     string nazivArtikla = Console.ReadLine();
                     Console.WriteLine("Kategorija porudzbine: 0 - PICE 1 - HRANA");
@@ -67,14 +68,14 @@ namespace Konobar
                         porudzbina.kategorija = Kategorija.HRANA;
                     porudzbina.cena = cena;
                     porudzbina.status = StatusPorudzbina.U_PRIPREMI;
+                    porudzbina.brojStola = brojStola;
                     porudzbine.Add(porudzbina);
                 }
                 Sto sto = new Sto()
                 {
                     brStola = brojStola,
                     brGostiju = brojGostiju,
-                    status = StatusSto.ZAUZET,
-                    porudzbine = porudzbine
+                    status = StatusSto.ZAUZET
                 };
 
                 try
@@ -86,9 +87,20 @@ namespace Konobar
                         byte[] data = ms.ToArray();
 
                         int brBajta = clientSocketUDP.SendTo(data, 0, data.Length, SocketFlags.None, destinationEP);
-                        Console.WriteLine("Porudzbina prosledjena serveru");
+                        Console.WriteLine("Stanje stola prosledjeno serveru");
                        
                     }
+
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        formatter.Serialize(ms, porudzbine);
+                        byte[] data = ms.ToArray();
+
+                        clientSocketTCP.Send(data);
+                        Console.WriteLine("Porudzbina prosledjena serveru");
+
+                    }
+
                     Console.WriteLine("Da li zelite unos nove porudzbine?");
                     if (Console.ReadLine().Equals("ne"))
                         break;
