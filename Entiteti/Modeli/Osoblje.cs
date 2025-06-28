@@ -10,7 +10,7 @@ namespace Domen.Modeli
     [Serializable]
     public class Osoblje
     {
-        private StatusOsoblja Status {  get; set; }
-        private TipOsoblja Tip { get; set; }
+        public StatusOsoblja Status {  get; set; }
+        public TipOsoblja Tip { get; set; }
     }
 }

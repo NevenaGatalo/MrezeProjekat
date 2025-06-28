@@ -12,10 +12,11 @@ namespace Konobar
     {
         static void Main(string[] args)
         {
+
             Socket clientSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Socket clientSocketUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
-            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50001); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
+            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
+            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
             EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
 
             Console.WriteLine("Klijent je spreman za povezivanje sa serverom, kliknite enter");
@@ -78,27 +79,5 @@ namespace Konobar
             Console.ReadKey();
         }
 
-        //private void PrijaviStanjeStolova()
-        //{  
-
-        //    try
-        //    {
-        //        int brBajta = clientSocketUDP.SendTo(binarnaPoruka, 0, binarnaPoruka.Length, SocketFlags.None, destinationEP); // Poruka koju saljemo u binarnom zapisu, pocetak poruke, duzina, flegovi, odrediste
-
-        //        Console.WriteLine($"Uspesno poslato {brBajta} ka {destinationEP}");
-
-        //        brBajta = clientSocket.ReceiveFrom(prijemniBafer, ref posiljaocEP);
-
-        //        string ehoPoruka = Encoding.UTF8.GetString(prijemniBafer, 0, brBajta);
-
-        //        Console.WriteLine($"Stigao je odgovor od {posiljaocEP}, duzine {brBajta}, eho glasi:\n{ehoPoruka}"); // 4
-
-        //    }
-        //    catch (SocketException ex)
-        //    {
-        //        Console.WriteLine($"Doslo je do greske tokom slanja poruke: \n{ex}");
-        //    }
-            
-        //}
     }
 }

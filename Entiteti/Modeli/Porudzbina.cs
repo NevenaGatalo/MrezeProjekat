@@ -10,9 +10,9 @@ namespace Domen.Modeli
     [Serializable]
     public class Porudzbina
     {
-        private string NazivArtikla = "";
-        private KategorijaPorudzbine Kategorija {  get; set; }
-        private int Cena {  get; set; }
-        private StatusPorudzbine Status {  get; set; }
+        public string NazivArtikla = "";
+        public KategorijaPorudzbine Kategorija {  get; set; }
+        public int Cena {  get; set; }
+        public StatusPorudzbine Status {  get; set; }
     }
 }
