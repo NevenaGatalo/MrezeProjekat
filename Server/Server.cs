@@ -24,7 +24,7 @@ namespace Server
                 new Sto() {brStola=4, brGostiju = 0, status = StatusSto.SLOBODAN},
                 new Sto() {brStola=5, brGostiju = 0, status = StatusSto.SLOBODAN}
             };
-
+            //mozda je dovoljna i samo lista porudzbina unutar svakog stola, bez ove globalne liste, promeniti kasnije
             List<Porudzbina> porudzbineServera = new List<Porudzbina>();
 
             Socket serverSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -97,6 +97,36 @@ namespace Server
                             Console.WriteLine(p.nazivArtikla);
                             porudzbineServera.Add(p);
                         }
+                    }
+                    // int brBajtaTCP = acceptedSocket.Receive(prijemniBaferPorudzbina);
+                    byte[] bufferZahtevRacun = new byte[1024];
+                    int primljeno = acceptedSocket.Receive(bufferZahtevRacun);
+                    Console.WriteLine("Primljen zahtev za racun");
+                    using (MemoryStream ms = new MemoryStream(bufferZahtevRacun, 0, primljeno))
+                    {
+                        var tuple = (Tuple<int, string>)formatter.Deserialize(ms);
+                        int brSt = tuple.Item1;
+                        string zahtev = tuple.Item2;
+                        int racun = 0;
+                        if (zahtev.Equals("Zahtev za racun"))
+                        {
+                            foreach (var s in stolovi)
+                            {
+                                if (s.brStola == brSt)
+                                {
+                                    foreach (var p in s.porudzbine)
+                                    {
+                                        racun += p.cena;
+                                    }
+                                }
+                            }
+                        }
+                        byte[] data = BitConverter.GetBytes(racun);
+                        acceptedSocket.Send(data);
+
+                        byte[] kusur = new byte[4];
+                        acceptedSocket.Receive(kusur);
+                        Console.WriteLine("Vracen kusur stolu broj " + brSt);
                     }
 
                 }

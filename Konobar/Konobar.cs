@@ -101,10 +101,29 @@ namespace Konobar
 
                     }
                     porudzbine.Clear();
-                    Console.WriteLine("Da li zelite unos nove porudzbine?");
-                    if (Console.ReadLine().Equals("ne"))
-                        break;
 
+                    Console.WriteLine("Sto broj " + brojStola + " zeli da plati racun. Saljem zahtev za racun serveru...");
+
+                    var tuple = new Tuple<int, string>(brojStola, "Zahtev za racun");
+
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        formatter.Serialize(ms, tuple);
+                        byte[] data = ms.ToArray();
+
+                        clientSocketTCP.Send(data);
+                    }
+
+                    byte[] racun = new byte[4]; // int zauzima 4 bajta
+                    int brPrimljenihBajtova = clientSocketTCP.Receive(racun);
+
+                    int broj = BitConverter.ToInt32(racun, 0); // pretvori bajtove nazad u int
+                    Console.WriteLine($"Racun stola" + brojStola + " iznosi: " + broj);
+                    
+                    Random randNovac = new Random();
+                    int kusur = randNovac.Next(broj, 2 * broj) - broj;
+                    clientSocketTCP.Send(BitConverter.GetBytes(kusur));
+                    Console.WriteLine("Kusur stola broj " + brojStola+  "iznosi: " + kusur);
                     //int brBajta = clientSocketUDP.SendTo(binarnaPoruka, 0, binarnaPoruka.Length, SocketFlags.None, destinationEP); // Poruka koju saljemo u binarnom zapisu, pocetak poruke, duzina, flegovi, odrediste
 
                     ////Console.WriteLine($"Uspesno poslato {brBajta} ka {destinationEP}");
