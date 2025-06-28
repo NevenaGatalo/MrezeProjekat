@@ -16,6 +16,17 @@ namespace Server
     {
         static void Main(string[] args)
         {
+            List<Sto> stolovi = new List<Sto>()
+            {
+                new Sto() {brStola=1, brGostiju = 0, status = StatusSto.SLOBODAN},
+                new Sto() {brStola=2, brGostiju = 0, status = StatusSto.SLOBODAN},
+                new Sto() {brStola=3, brGostiju = 0, status = StatusSto.SLOBODAN},
+                new Sto() {brStola=4, brGostiju = 0, status = StatusSto.SLOBODAN},
+                new Sto() {brStola=5, brGostiju = 0, status = StatusSto.SLOBODAN}
+            };
+
+            List<Porudzbina> porudzbineServera = new List<Porudzbina>();
+
             Socket serverSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             IPEndPoint serverEPTcp = new IPEndPoint(IPAddress.Any, 50001);
 
@@ -36,7 +47,7 @@ namespace Server
             Console.WriteLine($"Povezao se novi klijent! Njegova adresa je {clientEP}");
 
             BinaryFormatter formatter = new BinaryFormatter();
-            List<Sto> stolovi = new List<Sto>();
+            //List<Sto> stolovi = new List<Sto>();
 
             byte[] prijemniBaferPorudzbina = new byte[1024];
             byte[] prijemniBaferSto = new byte[1024];
@@ -51,7 +62,14 @@ namespace Server
                     using (MemoryStream ms = new MemoryStream(prijemniBaferSto, 0, brBajta))
                     {
                         Sto sto = (Sto)formatter.Deserialize(ms);
-                        stolovi.Add(sto);
+                        foreach (var s in stolovi)
+                        {
+                            if (s.brStola == sto.brStola)
+                            {
+                                s.brGostiju = sto.brGostiju;
+                                s.status = StatusSto.ZAUZET;
+                            }
+                        }
                         Console.WriteLine($"Primljen sto br {sto.brStola} sa {sto.brGostiju} gostiju.");
                     }
 
@@ -65,11 +83,19 @@ namespace Server
                     using (MemoryStream ms = new MemoryStream(prijemniBaferPorudzbina, 0, brBajtaTCP))
                     {
                         BinaryFormatter bf = new BinaryFormatter();
-                        List<Porudzbina> porudzbine = bf.Deserialize(ms) as List<Porudzbina>;
-                        Console.WriteLine("Primljena porudzbina stola broj " + porudzbine[1].brojStola);
-                        foreach (var p in porudzbine)
+                        List<Porudzbina> porudzbineNove = bf.Deserialize(ms) as List<Porudzbina>;
+                        Console.WriteLine("Primljena porudzbina stola broj " + porudzbineNove[0].brojStola);
+                        foreach (var s in stolovi)
+                        {
+                            if (s.brStola == porudzbineNove[0].brojStola)
+                            {
+                                s.porudzbine = porudzbineNove;
+                            }
+                        }
+                        foreach (var p in porudzbineNove)
                         {
                             Console.WriteLine(p.nazivArtikla);
+                            porudzbineServera.Add(p);
                         }
                     }
 

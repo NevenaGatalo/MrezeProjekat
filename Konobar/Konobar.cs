@@ -100,7 +100,7 @@ namespace Konobar
                         Console.WriteLine("Porudzbina prosledjena serveru");
 
                     }
-
+                    porudzbine.Clear();
                     Console.WriteLine("Da li zelite unos nove porudzbine?");
                     if (Console.ReadLine().Equals("ne"))
                         break;
