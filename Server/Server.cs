@@ -47,7 +47,6 @@ namespace Server
             Console.WriteLine($"Povezao se novi klijent! Njegova adresa je {clientEP}");
 
             BinaryFormatter formatter = new BinaryFormatter();
-            //List<Sto> stolovi = new List<Sto>();
 
             byte[] prijemniBaferPorudzbina = new byte[1024];
             byte[] prijemniBaferSto = new byte[1024];
@@ -55,6 +54,7 @@ namespace Server
             {
                 try
                 {
+                    //primljena poruka: sto koji je zauzet
                     int brBajta = serverSocketUDP.ReceiveFrom(prijemniBaferSto, ref posiljaocEP); // Primamo poruku i podatke o posiljaocu
                     
                     if (brBajta == 0) break;
@@ -74,6 +74,7 @@ namespace Server
                     }
 
                     //tcp
+                    //primljena poruka: porudzbina za sto
                     int brBajtaTCP = acceptedSocket.Receive(prijemniBaferPorudzbina);
                     if (brBajtaTCP == 0)
                     {
