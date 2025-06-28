@@ -5,6 +5,11 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using Biblioteka;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.InteropServices;
 
 namespace Konobar
 {
@@ -14,59 +19,110 @@ namespace Konobar
         {
 
             Socket clientSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001);
+
+
             Socket clientSocketUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
-            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
+            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50002);
+
             EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
 
-            Console.WriteLine("Klijent je spreman za povezivanje sa serverom, kliknite enter");
-            Console.ReadKey();
-            clientSocketTCP.Connect(destinationEPTcp);
-            Console.WriteLine("Klijent je uspesno povezan sa serverom!");
+            //Console.WriteLine("Klijent je spreman za povezivanje sa serverom, kliknite enter");
+            //Console.ReadKey();
+            //clientSocketTCP.Connect(destinationEPTcp);
+            //Console.WriteLine("Klijent je uspesno povezan sa serverom!");
 
-            while (true) // 1.
+            while (true)
             {
                 byte[] buffer = new byte[1024];
                 byte[] prijemniBafer = new byte[1024];
-                Console.WriteLine("Unesite stanje stolova:");
-                string poruka = Console.ReadLine();
+                Console.WriteLine("----------Unos stanja stolova-------------");
+                Console.WriteLine("Unesite broj stola: ");
+                int brojStola;
+                int.TryParse(Console.ReadLine(), out brojStola);
+                Console.WriteLine("Unesite broj gostiju: ");
+                int brojGostiju;
+                int.TryParse(Console.ReadLine(),out brojGostiju);
 
-                if (poruka == "stop client") // 2.
-                    break;
 
-                byte[] binarnaPoruka = Encoding.UTF8.GetBytes(poruka);
+                Console.WriteLine("\nUnos porudzbina za sto:");
+                Porudzbina porudzbina = new Porudzbina();
+                List<Porudzbina> porudzbine = new List<Porudzbina>();
+                for (int i = 0; i < brojGostiju; i++)
+                {
+                    Console.WriteLine("Porudzbina za gosta br " + i+1);
+                    Console.WriteLine("Naziv artikla: ");
+                    string nazivArtikla = Console.ReadLine();
+                    Console.WriteLine("Kategorija porudzbine: 0 - PICE 1 - HRANA");
+                    string kategorijaString = Console.ReadLine();
+                    int kategorija;
+                    int.TryParse(kategorijaString, out kategorija);
+                    Random rand = new Random();
+                    int cena = rand.Next(100, 5001);
+
+                    porudzbina.nazivArtikla = nazivArtikla;
+                    if (kategorija == 0)
+                        porudzbina.kategorija = Kategorija.PICE;
+                    else
+                        porudzbina.kategorija = Kategorija.HRANA;
+                    porudzbina.cena = cena;
+                    porudzbina.status = StatusPorudzbina.U_PRIPREMI;
+                    porudzbine.Add(porudzbina);
+                }
+                Sto sto = new Sto()
+                {
+                    brStola = brojStola,
+                    brGostiju = brojGostiju,
+                    status = StatusSto.ZAUZET,
+                    porudzbine = porudzbine
+                };
+
                 try
                 {
-                    int brBajta = clientSocketUDP.SendTo(binarnaPoruka, 0, binarnaPoruka.Length, SocketFlags.None, destinationEP); // Poruka koju saljemo u binarnom zapisu, pocetak poruke, duzina, flegovi, odrediste
-
-                    Console.WriteLine($"Uspesno poslato {brBajta} ka {destinationEP}");
-
-                    brBajta = clientSocketUDP.ReceiveFrom(prijemniBafer, ref posiljaocEP);
-
-                    string ehoPoruka = Encoding.UTF8.GetString(prijemniBafer, 0, brBajta);
-
-                    Console.WriteLine($"Stigao je odgovor od {posiljaocEP}, duzine {brBajta}, eho glasi:\n{ehoPoruka}"); // 4
-                    //tcp
-                    Console.WriteLine("Unesite porudzbinu: ");
-                    string porudzbina = Console.ReadLine();
-                    int brBajtaPorudzbine = clientSocketTCP.Send(Encoding.UTF8.GetBytes(porudzbina));
-
-                    if (poruka == "kraj")
-                        break;
-
-                    brBajta = clientSocketTCP.Receive(buffer);
-
-                    if (brBajta == 0)
+                    BinaryFormatter formatter = new BinaryFormatter();
+                    using (MemoryStream ms = new MemoryStream())
                     {
-                        Console.WriteLine("Server je zavrsio sa radom");
-                        break;
+                        formatter.Serialize(ms, sto);
+                        byte[] data = ms.ToArray();
+
+                        int brBajta = clientSocketUDP.SendTo(data, 0, data.Length, SocketFlags.None, destinationEP);
+                        Console.WriteLine("Porudzbina prosledjena serveru");
+                       
                     }
-
-                    string odgovor = Encoding.UTF8.GetString(buffer);
-
-                    Console.WriteLine(odgovor);
-                    if (odgovor == "kraj")
+                    Console.WriteLine("Da li zelite unos nove porudzbine?");
+                    if (Console.ReadLine().Equals("ne"))
                         break;
+
+                    //int brBajta = clientSocketUDP.SendTo(binarnaPoruka, 0, binarnaPoruka.Length, SocketFlags.None, destinationEP); // Poruka koju saljemo u binarnom zapisu, pocetak poruke, duzina, flegovi, odrediste
+
+                    ////Console.WriteLine($"Uspesno poslato {brBajta} ka {destinationEP}");
+
+                    //brBajta = clientSocketUDP.ReceiveFrom(prijemniBafer, ref posiljaocEP);
+
+                    //string ehoPoruka = Encoding.UTF8.GetString(prijemniBafer, 0, brBajta);
+
+                    //Console.WriteLine($"Stigao je odgovor od {posiljaocEP}, duzine {brBajta}, eho glasi:\n{ehoPoruka}"); // 4
+                    ////tcp
+                    //Console.WriteLine("Unesite porudzbinu: ");
+                    //string porudzbina = Console.ReadLine();
+                    //int brBajtaPorudzbine = clientSocketTCP.Send(Encoding.UTF8.GetBytes(porudzbina));
+
+                    //if (poruka == "kraj")
+                    //    break;
+
+                    //brBajta = clientSocketTCP.Receive(buffer);
+
+                    //if (brBajta == 0)
+                    //{
+                    //    Console.WriteLine("Server je zavrsio sa radom");
+                    //    break;
+                    //}
+
+                    //string odgovor = Encoding.UTF8.GetString(buffer);
+
+                    //Console.WriteLine(odgovor);
+                    //if (odgovor == "kraj")
+                    //    break;
                 }
                 catch (SocketException ex)
                 {
