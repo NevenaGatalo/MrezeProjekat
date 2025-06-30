@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Konobar", "Konobar\Konobar.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Biblioteka", "Biblioteka\Biblioteka.csproj", "{BD503A63-BBFC-41E0-B0EF-2ED898AFFC75}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kuvar", "Kuvar\Kuvar.csproj", "{5F0B0CE2-5BC7-48A7-ABC4-CD03A858EE6F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{BD503A63-BBFC-41E0-B0EF-2ED898AFFC75}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD503A63-BBFC-41E0-B0EF-2ED898AFFC75}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BD503A63-BBFC-41E0-B0EF-2ED898AFFC75}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F0B0CE2-5BC7-48A7-ABC4-CD03A858EE6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F0B0CE2-5BC7-48A7-ABC4-CD03A858EE6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F0B0CE2-5BC7-48A7-ABC4-CD03A858EE6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F0B0CE2-5BC7-48A7-ABC4-CD03A858EE6F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

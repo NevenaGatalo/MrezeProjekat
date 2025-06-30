@@ -42,9 +42,17 @@ namespace Server
             Console.WriteLine($"Server je pokrenut i ceka poruku na: {serverEPTcp}");
             serverSocketTCP.Listen(5);
             Console.WriteLine($"Server je stavljen u stanje osluskivanja i ocekuje komunikaciju na {serverEPTcp}");
-            Socket acceptedSocket = serverSocketTCP.Accept();
-            IPEndPoint clientEP = acceptedSocket.RemoteEndPoint as IPEndPoint;
-            Console.WriteLine($"Povezao se novi klijent! Njegova adresa je {clientEP}");
+
+            //povezivanje konobara sa serverom
+            Socket socketKonobar = serverSocketTCP.Accept();
+            IPEndPoint clientEPKonobar = socketKonobar.RemoteEndPoint as IPEndPoint;
+            Console.WriteLine($"Povezao se novi konobar! Njegova adresa je {clientEPKonobar}");
+
+            //povezivanje kuavra sa serverom
+            Socket socketKuvar = serverSocketTCP.Accept();
+            IPEndPoint clientEPKuvar = socketKuvar.RemoteEndPoint as IPEndPoint;
+            Console.WriteLine($"Povezao se novi kuvar! Njegova adresa je {clientEPKuvar}");
+
 
             BinaryFormatter formatter = new BinaryFormatter();
 
@@ -75,7 +83,7 @@ namespace Server
 
                     //tcp
                     //primljena poruka: porudzbina za sto
-                    int brBajtaTCP = acceptedSocket.Receive(prijemniBaferPorudzbina);
+                    int brBajtaTCP = socketKonobar.Receive(prijemniBaferPorudzbina);
                     if (brBajtaTCP == 0)
                     {
                         Console.WriteLine("Klijent je zavrsio sa radom");
@@ -99,9 +107,59 @@ namespace Server
                             porudzbineServera.Add(p);
                         }
                     }
+                    //slanje porudzbine kuvaru (za testiranje)
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        foreach (var s in stolovi)
+                        {
+                            if(s.porudzbine.Count != 0)
+                            {
+                                formatter.Serialize(ms, stolovi[0].porudzbine);
+                                byte[] data = ms.ToArray();
+
+                                socketKuvar.Send(data);
+                                Console.WriteLine("Porudzbina prosledjena kuvaru!");
+                                break;
+                            }
+
+                        }
+                    }
+
+                    //server nazad prima porudzbine od kuvara
+                    int brBajtaTCPPrimljenePorudzbine = socketKuvar.Receive(prijemniBaferPorudzbina);
+                    if (brBajtaTCP == 0)
+                    {
+                        Console.WriteLine("Klijent je zavrsio sa radom");
+                        break;
+                    }
+                    using (MemoryStream ms = new MemoryStream(prijemniBaferPorudzbina, 0, brBajtaTCP))
+                    {
+                        BinaryFormatter bf = new BinaryFormatter();
+                        List<Porudzbina> porudzbineGotove = bf.Deserialize(ms) as List<Porudzbina>;
+                        Console.WriteLine("Primljene gotove porudzbine stola broj " + porudzbineGotove[0].brojStola);
+                        //trazenje za koji sto su gotove porudzbine
+                        foreach (var s in stolovi)
+                        {
+                            if (s.brStola == porudzbineGotove[0].brojStola)
+                            {
+                                //dodeljivanje gotovih porudzbina stolu
+                                s.porudzbine = porudzbineGotove;
+                                //stavljanje da su porudzbine dostavljene
+                                foreach(var p in s.porudzbine)
+                                {
+                                    p.status = StatusPorudzbina.DOSTAVLJENO;
+                                }
+                            }
+                        }
+                        //saljem konobaru broj stola za koje su spremne porudzbine
+                        byte[] data = BitConverter.GetBytes(porudzbineGotove[0].brojStola);
+                        socketKonobar.Send(data);
+                    }
+                    
+
                     // int brBajtaTCP = acceptedSocket.Receive(prijemniBaferPorudzbina);
                     byte[] bufferZahtevRacun = new byte[1024];
-                    int primljeno = acceptedSocket.Receive(bufferZahtevRacun);
+                    int primljeno = socketKonobar.Receive(bufferZahtevRacun);
                     Console.WriteLine("Primljen zahtev za racun");
                     using (MemoryStream ms = new MemoryStream(bufferZahtevRacun, 0, primljeno))
                     {
@@ -123,10 +181,10 @@ namespace Server
                             }
                         }
                         byte[] data = BitConverter.GetBytes(racun);
-                        acceptedSocket.Send(data);
+                        socketKonobar.Send(data);
 
                         byte[] kusur = new byte[4];
-                        acceptedSocket.Receive(kusur);
+                        socketKonobar.Receive(kusur);
                         Console.WriteLine("Vracen kusur stolu broj " + brSt);
                     }
 
