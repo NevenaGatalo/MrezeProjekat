@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kuvar", "Kuvar\Kuvar.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Barmen", "Barmen\Barmen.csproj", "{74895BDD-4047-46CE-8419-5892126D2312}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server2", "Server2\Server2.csproj", "{942F1FF1-733B-4B51-852C-7BF2A5ABC7C7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{74895BDD-4047-46CE-8419-5892126D2312}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{74895BDD-4047-46CE-8419-5892126D2312}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{74895BDD-4047-46CE-8419-5892126D2312}.Release|Any CPU.Build.0 = Release|Any CPU
+		{942F1FF1-733B-4B51-852C-7BF2A5ABC7C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{942F1FF1-733B-4B51-852C-7BF2A5ABC7C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{942F1FF1-733B-4B51-852C-7BF2A5ABC7C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{942F1FF1-733B-4B51-852C-7BF2A5ABC7C7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

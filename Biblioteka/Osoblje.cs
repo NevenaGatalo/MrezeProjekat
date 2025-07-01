@@ -13,5 +13,11 @@ namespace Biblioteka
     {
         public TipOsoblja tip {  get; set; }
         public StatusOsoblja status { get; set; }
+
+        public Osoblje(TipOsoblja tip, StatusOsoblja status)
+        {
+            this.tip = tip;
+            this.status = status;
+        }
     }
 }
