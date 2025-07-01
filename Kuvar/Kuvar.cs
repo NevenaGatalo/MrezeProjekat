@@ -45,6 +45,11 @@ namespace Kuvar
                         Porudzbina p = bf.Deserialize(ms) as Porudzbina;
                         p.status = StatusPorudzbina.SPREMNO;
 
+                        bf.Serialize(ms, p);
+                        byte[] data = ms.ToArray();
+                        clientSocketTCP.Send(data);
+                        Console.WriteLine("Porudzbine spremne i prosledjene serveru");
+
                         ////prima listu porudzbina koje treba da napravi
                         //BinaryFormatter bf = new BinaryFormatter();
                         //List<Porudzbina> primljenePorudzbine = bf.Deserialize(ms) as List<Porudzbina>;

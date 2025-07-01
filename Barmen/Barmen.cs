@@ -38,28 +38,39 @@ namespace Barmen
                     }
                     using (MemoryStream ms = new MemoryStream(porudzbina, 0, brPrimljenihBajtova))
                     {
-                        //prima listu porudzbina koje treba da napravi
+                        //prima porudzbinu koju treba da napravi
                         BinaryFormatter bf = new BinaryFormatter();
-                        List<Porudzbina> primljenePorudzbine = bf.Deserialize(ms) as List<Porudzbina>;
-                        foreach (var p in primljenePorudzbine)
-                        {
-                            //proverava da li je porudzbina pice
-                            if (p.kategorija == Kategorija.PICE)
-                            {
-                                p.status = StatusPorudzbina.SPREMNO;
-                            }
-                        }
+                        Porudzbina p = bf.Deserialize(ms) as Porudzbina;
+                        p.status = StatusPorudzbina.SPREMNO;
 
-                        //salje listu spremljenih porudzbina serveru
-                        BinaryFormatter formatter = new BinaryFormatter();
-                        using (MemoryStream mst = new MemoryStream())
-                        {
-                            formatter.Serialize(mst, primljenePorudzbine);
-                            byte[] data = mst.ToArray();
+                        bf.Serialize(ms, p);
+                        byte[] data = ms.ToArray();
+                        clientSocketTCP.Send(data);
+                        Console.WriteLine("Porudzbine spremne i prosledjene serveru");
 
-                            clientSocketTCP.Send(data);
-                            Console.WriteLine("Porudzbine spremne i prosledjene serveru");
-                        }
+
+                        ////prima listu porudzbina koje treba da napravi
+                        //BinaryFormatter bf = new BinaryFormatter();
+                        //List<Porudzbina> primljenePorudzbine = bf.Deserialize(ms) as List<Porudzbina>;
+                        //foreach (var p in primljenePorudzbine)
+                        //{
+                        //    //proverava da li je porudzbina pice
+                        //    if (p.kategorija == Kategorija.PICE)
+                        //    {
+                        //        p.status = StatusPorudzbina.SPREMNO;
+                        //    }
+                        //}
+
+                        ////salje listu spremljenih porudzbina serveru
+                        //BinaryFormatter formatter = new BinaryFormatter();
+                        //using (MemoryStream mst = new MemoryStream())
+                        //{
+                        //    formatter.Serialize(mst, primljenePorudzbine);
+                        //    byte[] data = mst.ToArray();
+
+                        //    clientSocketTCP.Send(data);
+                        //    Console.WriteLine("Porudzbine spremne i prosledjene serveru");
+                        //}
                     }
                 }
                 catch (Exception ex)
