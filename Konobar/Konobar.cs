@@ -19,11 +19,11 @@ namespace Konobar
         {
 
             Socket clientSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001);
+            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50001);
 
 
             Socket clientSocketUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
+            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
            
             EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
 
@@ -133,6 +133,9 @@ namespace Konobar
                     int kusur = randNovac.Next(broj, 2 * broj) - broj;
                     clientSocketTCP.Send(BitConverter.GetBytes(kusur));
                     Console.WriteLine("Kusur stola broj " + brojStola+  "iznosi: " + kusur);
+
+                    if (Console.ReadLine().Equals("stop"))
+                        break;
 
                     //int brBajta = clientSocketUDP.SendTo(binarnaPoruka, 0, binarnaPoruka.Length, SocketFlags.None, destinationEP); // Poruka koju saljemo u binarnom zapisu, pocetak poruke, duzina, flegovi, odrediste
 

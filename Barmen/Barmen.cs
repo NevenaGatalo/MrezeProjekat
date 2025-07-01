@@ -1,19 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Net;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
-using System.IO;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
 using Biblioteka;
-using System.Runtime.InteropServices.ComTypes;
 
-namespace Kuvar
+namespace Barmen
 {
-    public class Kuvar
+    public class Barmen
     {
         static void Main(string[] args)
         {
@@ -22,7 +20,7 @@ namespace Kuvar
 
             EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
 
-            Console.WriteLine("Kuvar je spreman za povezivanje sa serverom, kliknite enter");
+            Console.WriteLine("Barmen je spreman za povezivanje sa serverom, kliknite enter");
             Console.ReadKey();
             clientSocketTCP.Connect(destinationEPTcp);
             Console.WriteLine("Klijent je uspesno povezan sa serverom!");
@@ -31,9 +29,9 @@ namespace Kuvar
             {
                 try
                 {
-                    byte[] porudzbina = new byte[1024]; // int zauzima 4 bajta
+                    byte[] porudzbina = new byte[1024];
                     int brPrimljenihBajtova = clientSocketTCP.Receive(porudzbina);
-                    if(brPrimljenihBajtova == 0)
+                    if (brPrimljenihBajtova == 0)
                     {
                         break;
                     }
@@ -44,8 +42,8 @@ namespace Kuvar
                         List<Porudzbina> primljenePorudzbine = bf.Deserialize(ms) as List<Porudzbina>;
                         foreach (var p in primljenePorudzbine)
                         {
-                            //proverava da li je porudzbina hrana
-                            if(p.kategorija == Kategorija.HRANA)
+                            //proverava da li je porudzbina pice
+                            if (p.kategorija == Kategorija.PICE)
                             {
                                 p.status = StatusPorudzbina.SPREMNO;
                             }
