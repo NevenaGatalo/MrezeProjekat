@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Biblioteka;
 using System.Runtime.Serialization;
+using System.Collections;
 
 namespace Server2
 {
@@ -50,8 +51,11 @@ namespace Server2
             //List<Socket> klijenti = new List<Socket>(); // Pravimo posebnu listu za klijentske sokete kako nam je ne bi obrisala Select funkcija
             
             Dictionary<Socket, Osoblje> osoblje = new Dictionary<Socket, Osoblje>();
+            Dictionary<int, Socket> konobarPoStolu = new Dictionary<int, Socket>();
 
             List<Porudzbina> porudzbine = new List<Porudzbina>();
+            List<Porudzbina> neobradjenePorudzbine = new List<Porudzbina>();
+
 
             
             try
@@ -62,6 +66,7 @@ namespace Server2
                 byte[] typeBuffer = new byte[1024];
                 byte[] prijemniBaferPorudzbina = new byte[1024];
                 byte[] prijemniBaferSto = new byte[1024];
+                byte[] infoKonobarBuffer = new byte[1024];
 
                 BinaryFormatter formatter = new BinaryFormatter();
                 while (true)
@@ -70,6 +75,7 @@ namespace Server2
                     Array.Clear(typeBuffer, 0, typeBuffer.Length);
                     Array.Clear(prijemniBaferPorudzbina, 0, prijemniBaferPorudzbina.Length);
                     Array.Clear(prijemniBaferSto, 0, prijemniBaferSto.Length);
+                    Array.Clear(infoKonobarBuffer, 0, infoKonobarBuffer.Length);
 
                     List<Socket> checkRead = new List<Socket>();
                     List<Socket> checkError = new List<Socket>();
@@ -142,100 +148,152 @@ namespace Server2
                                     #region Obracanje Konobara
                                     if (osoblje[s].tip == TipOsoblja.KONOBAR)
                                     {
-                                        Console.WriteLine("Konobar se obratio");
-                                        osoblje[s].status = StatusOsoblja.ZAUZET;
-                                        #region Primanje poruke koji sto je zauzet
-                                        //primljena poruka: sto koji je zauzet
-                                        int brBajtaUDP = serverSocketUDP.ReceiveFrom(prijemniBaferSto, ref posiljaocEP); // Primamo poruku i podatke o posiljaocu
+                                        //da li se salje porudzbina ili zahtev za racun
+                                        if (s.Poll(1000, SelectMode.SelectRead))
+                                        {
+                                            int bytes = s.Receive(infoKonobarBuffer);
 
-                                        if (brBajtaUDP == 0)
-                                        {
-                                            break;
-                                        }
-
-                                        using (MemoryStream ms = new MemoryStream(prijemniBaferSto, 0, brBajtaUDP))
-                                        {
-                                            Sto sto = (Sto)formatter.Deserialize(ms);
-                                            foreach (var st in stolovi)
+                                            if (Encoding.UTF8.GetString(infoKonobarBuffer, 0, bytes).Equals("OBRACUN RACUNA"))
                                             {
-                                                if (st.brStola == sto.brStola)
+                                                byte[] bufferZahtevRacun = new byte[1024];
+                                                int primljeno = s.Receive(bufferZahtevRacun);
+                                                Console.WriteLine("Primljen zahtev za racun");
+                                                using (MemoryStream ms = new MemoryStream(bufferZahtevRacun, 0, primljeno))
                                                 {
-                                                    st.brGostiju = sto.brGostiju;
-                                                    st.status = StatusSto.ZAUZET;
-                                                }
-                                            }
-                                            Console.WriteLine($"Primljen sto br {sto.brStola} sa {sto.brGostiju} gostiju.");
-                                        }
-                                        #endregion
-                                        #region Primanje porudzbine za sto
-                                        //tcp
-                                        //primljena poruka: porudzbina za sto
-                                        int brBajtaTCP = s.Receive(prijemniBaferPorudzbina);
-                                        if (brBajtaTCP == 0)
-                                        {
-                                            Console.WriteLine("Konobar je zavrsio sa radom");
-                                            break;
-                                        }
-                                        using (MemoryStream ms = new MemoryStream(prijemniBaferPorudzbina, 0, brBajtaTCP))
-                                        {
-                                            BinaryFormatter bf = new BinaryFormatter();
-                                            List<Porudzbina> porudzbineNove = bf.Deserialize(ms) as List<Porudzbina>;
-                                            Console.WriteLine("Primljena porudzbina stola broj " + porudzbineNove[0].brojStola);
-                                            foreach (var st in stolovi)
-                                            {
-                                                if (st.brStola == porudzbineNove[0].brojStola)
-                                                {
-                                                    st.porudzbine = porudzbineNove;
-                                                }
-                                            }
-                                            foreach (var p in porudzbineNove)
-                                            {
-                                                Console.WriteLine(p.nazivArtikla);
-                                                porudzbine.Add(p);
-                                            }
-                                        }
-                                        #endregion
-                                        #region Slanje porudzbine kuvaru/barmenu
-                                        ////slanje porudzbine kuvaru (za testiranje)
-                                        using (MemoryStream ms = new MemoryStream())
-                                        {
-                                            foreach(var p in porudzbine)
-                                            {
-                                                if(p.kategorija == Kategorija.HRANA)
-                                                {
-                                                    //nadji slobodnog kuvara
-                                                    foreach (Socket klijent in osoblje.Keys)
+                                                    var tuple = (Tuple<int, string>)formatter.Deserialize(ms);
+                                                    int brSt = tuple.Item1;
+                                                    string zahtev = tuple.Item2;
+                                                    int racun = 0;
+                                                    if (zahtev.Equals("Zahtev za racun"))
                                                     {
-                                                        if (osoblje[klijent].tip == TipOsoblja.KUVAR && osoblje[klijent].status == StatusOsoblja.SLOBODAN)
+                                                        foreach (var st in stolovi)
                                                         {
-                                                            osoblje[klijent].status = StatusOsoblja.ZAUZET;
-                                                            //posalji kuvaru
-                                                            formatter.Serialize(ms, p);
-                                                            byte[] data = ms.ToArray();
-                                                            klijent.Send(data);
-                                                            Console.WriteLine("Porudzbina prosledjena kuvaru!");
+                                                            if (st.brStola == brSt)
+                                                            {
+                                                                foreach (var p in st.porudzbine)
+                                                                {
+                                                                    racun += p.cena;
+                                                                }
+                                                            }
                                                         }
                                                     }
+                                                    byte[] data = BitConverter.GetBytes(racun);
+                                                    s.Send(data);
+
+                                                    byte[] kusur = new byte[4];
+                                                    s.Receive(kusur);
+                                                    Console.WriteLine("Vracen kusur stolu broj " + brSt);
                                                 }
-                                                else
+                                            }
+                                            else
+                                            {
+                                                Console.WriteLine("Konobar se obratio");
+                                                osoblje[s].status = StatusOsoblja.ZAUZET;
+                                                #region Primanje poruke koji sto je zauzet
+                                                //primljena poruka: sto koji je zauzet
+                                                int brBajtaUDP = serverSocketUDP.ReceiveFrom(prijemniBaferSto, ref posiljaocEP); // Primamo poruku i podatke o posiljaocu
+
+                                                if (brBajtaUDP == 0)
                                                 {
-                                                    //nadji slobodnog barmena
-                                                    foreach (Socket klijent in osoblje.Keys)
+                                                    break;
+                                                }
+
+                                                using (MemoryStream ms = new MemoryStream(prijemniBaferSto, 0, brBajtaUDP))
+                                                {
+                                                    Sto sto = (Sto)formatter.Deserialize(ms);
+                                                    foreach (var st in stolovi)
                                                     {
-                                                        if (osoblje[klijent].tip == TipOsoblja.BARMEN && osoblje[klijent].status == StatusOsoblja.SLOBODAN)
+                                                        if (st.brStola == sto.brStola)
                                                         {
-                                                            osoblje[klijent].status = StatusOsoblja.ZAUZET;
-                                                            //posalji barmenu
-                                                            formatter.Serialize(ms, p);
-                                                            byte[] data = ms.ToArray();
-                                                            klijent.Send(data);
-                                                            Console.WriteLine("Porudzbina prosledjena barmenu!");
+                                                            st.brGostiju = sto.brGostiju;
+                                                            st.status = StatusSto.ZAUZET;
                                                         }
                                                     }
+                                                    Console.WriteLine($"Primljen sto br {sto.brStola} sa {sto.brGostiju} gostiju.");
+                                                    konobarPoStolu[sto.brStola] = s;
+                                                }
+                                                #endregion
+                                                #region Primanje porudzbine za sto
+                                                //tcp
+                                                //primljena poruka: porudzbina za sto
+                                                int brBajtaTCP = s.Receive(prijemniBaferPorudzbina);
+                                                if (brBajtaTCP == 0)
+                                                {
+                                                    Console.WriteLine("Konobar je zavrsio sa radom");
+                                                    break;
+                                                }
+                                                using (MemoryStream ms = new MemoryStream(prijemniBaferPorudzbina, 0, brBajtaTCP))
+                                                {
+                                                    BinaryFormatter bf = new BinaryFormatter();
+                                                    List<Porudzbina> porudzbineNove = bf.Deserialize(ms) as List<Porudzbina>;
+                                                    Console.WriteLine("Primljena porudzbina stola broj " + porudzbineNove[0].brojStola);
+                                                    foreach (var st in stolovi)
+                                                    {
+                                                        if (st.brStola == porudzbineNove[0].brojStola)
+                                                        {
+                                                            st.porudzbine = porudzbineNove;
+                                                        }
+                                                    }
+                                                    foreach (var p in porudzbineNove)
+                                                    {
+                                                        Console.WriteLine(p.nazivArtikla);
+                                                        porudzbine.Add(p);
+                                                    }
+                                                }
+                                                #endregion
+                                                #region Slanje porudzbine kuvaru/barmenu
+                                                ////slanje porudzbine kuvaru (za testiranje)
+                                                using (MemoryStream ms = new MemoryStream())
+                                                {
+                                                    foreach (var p in porudzbine)
+                                                    {
+                                                        if (p.kategorija == Kategorija.HRANA)
+                                                        {
+                                                            //nadji slobodnog kuvara
+                                                            foreach (Socket klijent in osoblje.Keys)
+                                                            {
+                                                                if (osoblje[klijent].tip == TipOsoblja.KUVAR && osoblje[klijent].status == StatusOsoblja.SLOBODAN)
+                                                                {
+                                                                    osoblje[klijent].status = StatusOsoblja.ZAUZET;
+                                                                    p.status = StatusPorudzbina.U_PRIPREMI;
+                                                                    //posalji kuvaru
+                                                                    formatter.Serialize(ms, p);
+                                                                    byte[] data = ms.ToArray();
+                                                                    klijent.Send(data);
+                                                                    Console.WriteLine("Porudzbina prosledjena kuvaru!");
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            //nadji slobodnog barmena
+                                                            foreach (Socket klijent in osoblje.Keys)
+                                                            {
+                                                                if (osoblje[klijent].tip == TipOsoblja.BARMEN && osoblje[klijent].status == StatusOsoblja.SLOBODAN)
+                                                                {
+                                                                    osoblje[klijent].status = StatusOsoblja.ZAUZET;
+                                                                    p.status = StatusPorudzbina.U_PRIPREMI;
+                                                                    //posalji barmenu
+                                                                    formatter.Serialize(ms, p);
+                                                                    byte[] data = ms.ToArray();
+                                                                    klijent.Send(data);
+                                                                    Console.WriteLine("Porudzbina prosledjena barmenu!");
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                        //dodaj u neobradjene porudzbine
+                                                        if (p.status != StatusPorudzbina.U_PRIPREMI)
+                                                            neobradjenePorudzbine.Add(p);
+                                                    }
+                                                    porudzbine = neobradjenePorudzbine;
                                                 }
                                             }
                                         }
 
+                                        
+                                        
                                     }
                                     #endregion
                                     #endregion
@@ -243,7 +301,15 @@ namespace Server2
                                     //kuvar
                                     else if (osoblje[s].tip == TipOsoblja.KUVAR)
                                     {
-                                        Console.WriteLine("Kuvar se obratio");
+                                        //primanje porudzbine
+                                        byte[] porudzbina = new byte[1024];
+                                        int brPrimljenihBajtova = s.Receive(porudzbina);
+                                        using (MemoryStream ms = new MemoryStream(porudzbina, 0, brPrimljenihBajtova))
+                                        {
+                                            BinaryFormatter bf = new BinaryFormatter();
+                                            Porudzbina p = bf.Deserialize(ms) as Porudzbina;
+                                        }
+                                        
                                     }
                                     #endregion
                                     #region Obracanje Barmena
@@ -253,14 +319,38 @@ namespace Server2
                                         Console.WriteLine("Barmen se obratio");
                                     }
                                     #endregion
-                                    using (MemoryStream ms = new MemoryStream(buffer, 0, brBajta))
+                                }
+                            }
+
+                            //vracanje porudzbina nazad konobaru zaduzenom za taj sto
+                            #region Vracanje porudzbina nazad zaduzenom konobaru
+                            int brojacSpremnihPorudzbina = 0;
+                            foreach(int brojStola in konobarPoStolu.Keys)
+                            {
+                                foreach(Sto sto in stolovi)
+                                {
+                                    if(sto.brStola == brojStola)
                                     {
-                                        BinaryFormatter bf = new BinaryFormatter();
-                                        //Student student = bf.Deserialize(ms) as Student;
-                                        //Console.WriteLine($"Ime i prezime studenta: {student.ImeIPrezime} \nbroj poena: {student.Poeni}");
+                                        foreach(Porudzbina p in sto.porudzbine)
+                                        {
+                                            if(p.status == StatusPorudzbina.SPREMNO)
+                                            {
+                                                brojacSpremnihPorudzbina++;
+                                            }
+                                        }
+                                        if(brojacSpremnihPorudzbina == sto.brGostiju)
+                                        {
+                                            //sto je slobodan
+                                            sto.status = StatusSto.SLOBODAN;
+                                            //posalji za koji sto su porudzbine gotove
+                                            byte[] data = BitConverter.GetBytes(sto.brStola);
+                                            konobarPoStolu[brojStola].Send(data);
+                                            Console.WriteLine("Porudzbine poslate nazad konobaru");
+                                        }
                                     }
                                 }
                             }
+                            #endregion
 
                             if (Console.KeyAvailable)
                             {

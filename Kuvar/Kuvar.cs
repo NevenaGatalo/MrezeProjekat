@@ -32,7 +32,7 @@ namespace Kuvar
             {
                 try
                 {
-                    byte[] porudzbina = new byte[1024]; // int zauzima 4 bajta
+                    byte[] porudzbina = new byte[1024];
                     int brPrimljenihBajtova = clientSocketTCP.Receive(porudzbina);
                     if(brPrimljenihBajtova == 0)
                     {
@@ -48,7 +48,7 @@ namespace Kuvar
                         bf.Serialize(ms, p);
                         byte[] data = ms.ToArray();
                         clientSocketTCP.Send(data);
-                        Console.WriteLine("Porudzbine spremne i prosledjene serveru");
+                        Console.WriteLine("Porudzbina spremna i prosledjena serveru");
 
                         ////prima listu porudzbina koje treba da napravi
                         //BinaryFormatter bf = new BinaryFormatter();

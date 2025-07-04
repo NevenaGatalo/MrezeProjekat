@@ -70,7 +70,7 @@ namespace Konobar
                     else
                         porudzbina.kategorija = Kategorija.HRANA;
                     porudzbina.cena = cena;
-                    porudzbina.status = StatusPorudzbina.U_PRIPREMI;
+                    //porudzbina.status = StatusPorudzbina.U_PRIPREMI;
                     porudzbina.brojStola = brojStola;
                     porudzbine.Add(porudzbina);
                 }
@@ -83,6 +83,9 @@ namespace Konobar
 
                 try
                 {
+                    //salje poruku SALJEM PORUDZBINU
+                    int brBajtaInfoPoruke = clientSocketTCP.Send(Encoding.UTF8.GetBytes("SLANJE PORUDZBINE"));
+
                     BinaryFormatter formatter = new BinaryFormatter();
                     using (MemoryStream ms = new MemoryStream())
                     {
@@ -114,6 +117,9 @@ namespace Konobar
                     Console.WriteLine("Dostavljena porudzbina za sto broj" + konvertovanBrojStola);
 
                     //konobar salje zahtev za racun
+                    //salje poruku RACUN
+                    int brBajtaInfoPorukeRacun = clientSocketTCP.Send(Encoding.UTF8.GetBytes("OBRACUN RACUNA"));
+
                     Console.WriteLine("Sto broj " + brojStola + " zeli da plati racun. Saljem zahtev za racun serveru...");
 
                     var tuple = new Tuple<int, string>(brojStola, "Zahtev za racun");
