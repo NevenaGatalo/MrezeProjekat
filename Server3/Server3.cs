@@ -69,6 +69,8 @@ namespace Server2
                 byte[] infoKonobarBuffer = new byte[1024];
 
                 BinaryFormatter formatter = new BinaryFormatter();
+                
+                int iteracije2 = 0;
                 while (true)
                 {
                     Array.Clear(buffer, 0, buffer.Length);
@@ -102,6 +104,8 @@ namespace Server2
                         Console.WriteLine($"Broj dogadjaja je: {checkRead.Count}");
                         foreach (Socket s in checkRead)
                         {
+                            iteracije2++;
+                            Console.WriteLine("Iteracije2 " + iteracije2);
                             //ako neko zeli da se konektuje
                             if (s == serverSocketTCP)
                             {
@@ -344,8 +348,8 @@ namespace Server2
                                         //}
                                         try
                                         {
-                                            // Poll: proverava da li je soket spreman za čitanje, timeout 1000 mikrosekundi (1ms)
-                                            if (s.Poll(3000, SelectMode.SelectRead))
+                                            Console.WriteLine("Usao ponovo");
+                                            if (s.Available > 0)
                                             {
                                                 int brPrimljenihBajtova = s.Receive(porudzbina);
                                                 if (brPrimljenihBajtova > 0)
@@ -373,14 +377,13 @@ namespace Server2
                                             else
                                             {
                                                 // Nema podataka za čitanje, idi dalje (ne blokira)
-                                                // Možeš staviti log ako želiš:
-                                                // Console.WriteLine("Kuvar nema sta da posalje sada");
+                                                Console.WriteLine("Kuvar nema sta da posalje sada");
+                                                continue;
                                             }
                                         }
                                         catch (SocketException ex)
                                         {
                                             Console.WriteLine("Greška prilikom primanja od kuvara: " + ex.Message);
-                                            // Ovdje možeš dodatno obraditi greške, npr. zatvoriti soket
                                         }
 
                                     }
