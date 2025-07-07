@@ -16,7 +16,7 @@ namespace Barmen
         static void Main(string[] args)
         {
             Socket clientSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001);
+            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50001);
 
             EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
 

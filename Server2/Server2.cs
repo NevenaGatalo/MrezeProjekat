@@ -149,10 +149,11 @@ namespace Server2
                                     if (osoblje[s].tip == TipOsoblja.KONOBAR)
                                     {
                                         //da li se salje porudzbina ili zahtev za racun
-                                        if (s.Poll(1000, SelectMode.SelectRead))
+                                        if (s.Poll(10000, SelectMode.SelectRead))
                                         {
                                             int bytes = s.Receive(infoKonobarBuffer);
-
+                                            //dodala proveru
+                                            string poruka = Encoding.UTF8.GetString(infoKonobarBuffer, 0, bytes);
                                             if (Encoding.UTF8.GetString(infoKonobarBuffer, 0, bytes).Equals("OBRACUN RACUNA"))
                                             {
                                                 byte[] bufferZahtevRacun = new byte[1024];

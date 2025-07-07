@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Barmen", "Barmen\Barmen.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server2", "Server2\Server2.csproj", "{942F1FF1-733B-4B51-852C-7BF2A5ABC7C7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server3", "Server3\Server3.csproj", "{59AF5C99-F6D1-47D9-806B-B858A17E19D8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{942F1FF1-733B-4B51-852C-7BF2A5ABC7C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{942F1FF1-733B-4B51-852C-7BF2A5ABC7C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{942F1FF1-733B-4B51-852C-7BF2A5ABC7C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{59AF5C99-F6D1-47D9-806B-B858A17E19D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59AF5C99-F6D1-47D9-806B-B858A17E19D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59AF5C99-F6D1-47D9-806B-B858A17E19D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59AF5C99-F6D1-47D9-806B-B858A17E19D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
