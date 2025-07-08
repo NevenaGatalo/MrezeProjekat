@@ -19,11 +19,11 @@ namespace Konobar
         {
 
             Socket clientSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50001);
+            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001);
 
 
             Socket clientSocketUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
+            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
            
             EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
 
@@ -73,6 +73,9 @@ namespace Konobar
                     //porudzbina.status = StatusPorudzbina.U_PRIPREMI;
                     porudzbina.brojStola = brojStola;
                     porudzbine.Add(porudzbina);
+
+
+                    Console.WriteLine("Status porudzbine: " + porudzbina.status);
                 }
                 Sto sto = new Sto()
                 {
@@ -84,7 +87,7 @@ namespace Konobar
                 try
                 {
                     //salje poruku SALJEM PORUDZBINU
-                    int brBajtaInfoPoruke = clientSocketTCP.Send(Encoding.UTF8.GetBytes("SLANJE PORUDZBINE"));
+                    //int brBajtaInfoPoruke = clientSocketTCP.Send(Encoding.UTF8.GetBytes("SLANJE PORUDZBINE"));
 
                     BinaryFormatter formatter = new BinaryFormatter();
                     using (MemoryStream ms = new MemoryStream())
@@ -109,28 +112,9 @@ namespace Konobar
                     }
                     porudzbine.Clear();
 
-
-                    //konobar prima gotove porudzbine
-                    byte[] brojStolaGotovePorudzbine = new byte[4]; // int zauzima 4 bajta
-                    int brPrimljenihBajtovaGotovePorudzbine = clientSocketTCP.Receive(brojStolaGotovePorudzbine);
-                    int konvertovanBrojStola = BitConverter.ToInt32(brojStolaGotovePorudzbine, 0);
-                    Console.WriteLine("Dostavljena porudzbina za sto broj" + konvertovanBrojStola);
-
                     //konobar salje zahtev za racun
-                    //salje poruku RACUN
-                    int brBajtaInfoPorukeRacun = clientSocketTCP.Send(Encoding.UTF8.GetBytes("OBRACUN RACUNA"));
+                    Console.WriteLine("Saljem zahtev za racun serveru...");
 
-                    Console.WriteLine("Sto broj " + brojStola + " zeli da plati racun. Saljem zahtev za racun serveru...");
-
-                    var tuple = new Tuple<int, string>(brojStola, "Zahtev za racun");
-
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        formatter.Serialize(ms, tuple);
-                        byte[] data = ms.ToArray();
-
-                        clientSocketTCP.Send(data);
-                    }
 
                     byte[] racun = new byte[4]; // int zauzima 4 bajta
                     int brPrimljenihBajtova = clientSocketTCP.Receive(racun);
@@ -140,42 +124,17 @@ namespace Konobar
                     
                     Random randNovac = new Random();
                     int kusur = randNovac.Next(broj, 2 * broj) - broj;
-                    clientSocketTCP.Send(BitConverter.GetBytes(kusur));
                     Console.WriteLine("Kusur stola broj " + brojStola+  "iznosi: " + kusur);
+
+                    //konobar prima gotove porudzbine
+                    byte[] brojStolaGotovePorudzbine = new byte[4]; // int zauzima 4 bajta
+                    int brPrimljenihBajtovaGotovePorudzbine = clientSocketTCP.Receive(brojStolaGotovePorudzbine);
+                    int konvertovanBrojStola = BitConverter.ToInt32(brojStolaGotovePorudzbine, 0);
+                    Console.WriteLine("Dostavljena porudzbina za sto broj" + konvertovanBrojStola);
 
                     if (Console.ReadLine().Equals("stop"))
                         break;
 
-                    //int brBajta = clientSocketUDP.SendTo(binarnaPoruka, 0, binarnaPoruka.Length, SocketFlags.None, destinationEP); // Poruka koju saljemo u binarnom zapisu, pocetak poruke, duzina, flegovi, odrediste
-
-                    ////Console.WriteLine($"Uspesno poslato {brBajta} ka {destinationEP}");
-
-                    //brBajta = clientSocketUDP.ReceiveFrom(prijemniBafer, ref posiljaocEP);
-
-                    //string ehoPoruka = Encoding.UTF8.GetString(prijemniBafer, 0, brBajta);
-
-                    //Console.WriteLine($"Stigao je odgovor od {posiljaocEP}, duzine {brBajta}, eho glasi:\n{ehoPoruka}"); // 4
-                    ////tcp
-                    //Console.WriteLine("Unesite porudzbinu: ");
-                    //string porudzbina = Console.ReadLine();
-                    //int brBajtaPorudzbine = clientSocketTCP.Send(Encoding.UTF8.GetBytes(porudzbina));
-
-                    //if (poruka == "kraj")
-                    //    break;
-
-                    //brBajta = clientSocketTCP.Receive(buffer);
-
-                    //if (brBajta == 0)
-                    //{
-                    //    Console.WriteLine("Server je zavrsio sa radom");
-                    //    break;
-                    //}
-
-                    //string odgovor = Encoding.UTF8.GetString(buffer);
-
-                    //Console.WriteLine(odgovor);
-                    //if (odgovor == "kraj")
-                    //    break;
                 }
                 catch (SocketException ex)
                 {

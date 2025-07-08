@@ -20,7 +20,7 @@ namespace Kuvar
         static void Main(string[] args)
         {
             Socket clientSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50001);
+            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001);
 
             EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
 
@@ -45,11 +45,12 @@ namespace Kuvar
                     {
                         //prima porudzbinu koju treba da napravi
                         BinaryFormatter bf = new BinaryFormatter();
-                        //Porudzbina p = bf.Deserialize(ms) as Porudzbina;
                         p = bf.Deserialize(ms) as Porudzbina;
                     }
-                    Thread.Sleep(2000);
+                    Console.WriteLine("Primljena porudzbina: " + p.nazivArtikla);
+                    //Thread.Sleep(2000);
                     p.status = StatusPorudzbina.SPREMNO;
+                    
 
                     using (MemoryStream msSend = new MemoryStream()) {
                         BinaryFormatter bfSend = new BinaryFormatter();
