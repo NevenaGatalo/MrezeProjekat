@@ -10,6 +10,8 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using Biblioteka;
 using System.Runtime.InteropServices.ComTypes;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Kuvar
 {
@@ -46,7 +48,7 @@ namespace Kuvar
                         //Porudzbina p = bf.Deserialize(ms) as Porudzbina;
                         p = bf.Deserialize(ms) as Porudzbina;
                     }
-                    
+                    Thread.Sleep(2000);
                     p.status = StatusPorudzbina.SPREMNO;
 
                     using (MemoryStream msSend = new MemoryStream()) {
