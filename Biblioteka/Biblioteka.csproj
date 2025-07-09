@@ -42,9 +42,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Osoblje.cs" />
+    <Compile Include="OsobljeRepozitorijum.cs" />
     <Compile Include="Porudzbina.cs" />
     <Compile Include="Sto.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StoloviRepozitorijum.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

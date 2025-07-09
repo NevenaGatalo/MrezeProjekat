@@ -31,7 +31,7 @@ namespace Server4
             serverSocketUDP.Bind(serverEPUDP);
 
             serverSocketTCP.Blocking = false;
-            int maxKlijenata = 3;
+            int maxKlijenata = 5;
             serverSocketTCP.Listen(maxKlijenata);
 
 
@@ -39,48 +39,63 @@ namespace Server4
             Console.WriteLine($"{"[INFO]",-18} Server je stavljen u stanje osluskivanja i ocekuje komunikaciju na {serverEPTCP}\n");
 
 
-            List<Sto> stolovi = new List<Sto>()
-            {
-                new Sto() {brStola=1, brGostiju = 0, status = StatusSto.SLOBODAN},
-                new Sto() {brStola=2, brGostiju = 0, status = StatusSto.SLOBODAN},
-                new Sto() {brStola=3, brGostiju = 0, status = StatusSto.SLOBODAN},
-                new Sto() {brStola=4, brGostiju = 0, status = StatusSto.SLOBODAN},
-                new Sto() {brStola=5, brGostiju = 0, status = StatusSto.SLOBODAN}
-            };
+            //List<Sto> stolovi = new List<Sto>()
+            //{
+            //    new Sto() {brStola=1, brGostiju = 0, status = StatusSto.SLOBODAN},
+            //    new Sto() {brStola=2, brGostiju = 0, status = StatusSto.SLOBODAN},
+            //    new Sto() {brStola=3, brGostiju = 0, status = StatusSto.SLOBODAN},
+            //    new Sto() {brStola=4, brGostiju = 0, status = StatusSto.SLOBODAN},
+            //    new Sto() {brStola=5, brGostiju = 0, status = StatusSto.SLOBODAN}
+            //};
 
             List<Socket> acceptedSockets = new List<Socket>();
-            Dictionary<Socket, Osoblje> osoblje = new Dictionary<Socket, Osoblje>();
+            //Dictionary<Socket, Osoblje> osoblje = new Dictionary<Socket, Osoblje>();
             List<Porudzbina> porudzbine = new List<Porudzbina>();
             Dictionary<int, Socket> konobarPoStolu = new Dictionary<int, Socket>();
             //List<Porudzbina> neobradjenePorudzbine = new List<Porudzbina>();
 
             while (true)
             {
+
                 if (serverSocketTCP.Poll(2000 * 1000, SelectMode.SelectRead))
                 {
                     Socket acceptedSocket = serverSocketTCP.Accept();
                     IPEndPoint clientEP = acceptedSocket.RemoteEndPoint as IPEndPoint;
                     acceptedSockets.Add(acceptedSocket);
                     Osoblje o = KoSeObratio(acceptedSocket);
-                    osoblje[acceptedSocket] = o;
+                    OsobljeRepozitorijum.osoblje[acceptedSocket] = o;
                     Console.WriteLine($"{"[KLIJENT]",-18} Povezao se "+ o.tip.ToString().ToLower() +"! Njegova adresa je " + clientEP);
                 }
-                if (acceptedSockets.Count < maxKlijenata)
+                int konobarCount = 0;
+                int kuvarCount = 0;
+                int barmenCount = 0;
+                foreach (Osoblje o in OsobljeRepozitorijum.osoblje.Values)
+                {
+                    if (o.tip == TipOsoblja.KONOBAR) konobarCount++;
+                    else if (o.tip == TipOsoblja.KUVAR) kuvarCount++;
+                    else barmenCount++;
+                }
+                if (konobarCount == 0 || kuvarCount == 0 || barmenCount == 0 || acceptedSockets.Count < maxKlijenata)
                 {
                     continue;
                 }
+                //if (acceptedSockets.Count < maxKlijenata)
+                //{
+                //    continue;
+                //}
                 while (true)
                 {
                     try
                     {
-                        foreach (Socket s in osoblje.Keys)
+                        //
+                        foreach (Socket s in OsobljeRepozitorijum.osoblje.Keys)
                         {
                             if (s.Poll(1500 * 1000, SelectMode.SelectRead))
                             {
 
-                                osoblje[s].status = StatusOsoblja.ZAUZET;
+                                OsobljeRepozitorijum.osoblje[s].status = StatusOsoblja.ZAUZET;
                                 #region Obracanje konobara
-                                if (osoblje[s].tip == TipOsoblja.KONOBAR)
+                                if (OsobljeRepozitorijum.osoblje[s].tip == TipOsoblja.KONOBAR)
                                 {
                                     //primanje stanja stola
                                     byte[] prijemniBaferSto = new byte[1024];
@@ -90,7 +105,7 @@ namespace Server4
                                     {
                                         break;
                                     }
-                                    Sto zauzetSto = DeserializacijaStola(prijemniBaferSto, brBajtaUDP, stolovi);
+                                    Sto zauzetSto = DeserializacijaStola(prijemniBaferSto, brBajtaUDP, StoloviRepozitorijum.stolovi);
                                     konobarPoStolu[zauzetSto.brStola] = s;
                                     Console.WriteLine($"\n{"[STO]",-18} Zauzet sto broj {zauzetSto.brStola}, sa brojem gostiju: {zauzetSto.brGostiju}.");
 
@@ -99,10 +114,11 @@ namespace Server4
                                     int brBajtaTCP = s.Receive(prijemniBaferPorudzbina);
                                     if (brBajtaTCP == 0)
                                     {
+                                        OsobljeRepozitorijum.osoblje.Remove(s);
                                         Console.WriteLine("Konobar je zavrsio sa radom");
                                         break;
                                     }
-                                    DeserializacijaPorudzbina(prijemniBaferPorudzbina, brBajtaTCP, stolovi, porudzbine);
+                                    DeserializacijaPorudzbina(prijemniBaferPorudzbina, brBajtaTCP, StoloviRepozitorijum.stolovi, porudzbine);
                                     Console.WriteLine($"\n{"[PORUDZBINE]",-18} Pristigle porudzbine");
                                     for (int i = 0; i < porudzbine.Count; i++)
                                     {
@@ -110,14 +126,14 @@ namespace Server4
                                     }
 
                                     //obracun i slanje racuna konobaru
-                                    int racun = ObracunRacuna(stolovi, zauzetSto);
+                                    int racun = ObracunRacuna(StoloviRepozitorijum.stolovi, zauzetSto);
                                     byte[] data = BitConverter.GetBytes(racun);
                                     s.Send(data);
                                     Console.WriteLine($"{"[RACUN]",-18} Poslat racun konobaru za sto broj: " + zauzetSto.brStola + ". Racun iznosi " + racun + " dinara.\n");
                                 }
                                 #endregion
                                 #region Obracanje kuvara
-                                else if (osoblje[s].tip == TipOsoblja.KUVAR)
+                                else if (OsobljeRepozitorijum.osoblje[s].tip == TipOsoblja.KUVAR)
                                 {
                                     try
                                     {
@@ -125,8 +141,10 @@ namespace Server4
                                         if (s.Available > 0)
                                         {
                                             int brPrimljenihBajtova = s.Receive(bufferPorudzbina);
-                                            PrimiGotovuPorudzbinu(brPrimljenihBajtova, stolovi, bufferPorudzbina);
-                                            osoblje[s].status = StatusOsoblja.SLOBODAN;
+                                            if(!PrimiGotovuPorudzbinu(brPrimljenihBajtova, StoloviRepozitorijum.stolovi, bufferPorudzbina))
+                                                OsobljeRepozitorijum.osoblje.Remove(s);
+                                            else
+                                                OsobljeRepozitorijum.osoblje[s].status = StatusOsoblja.SLOBODAN;
                                         }
                                         else
                                         {
@@ -150,8 +168,10 @@ namespace Server4
                                         if (s.Available > 0)
                                         {
                                             int brPrimljenihBajtova = s.Receive(bufferPorudzbina);
-                                            PrimiGotovuPorudzbinu(brPrimljenihBajtova, stolovi, bufferPorudzbina);
-                                            osoblje[s].status = StatusOsoblja.SLOBODAN;
+                                            if(!PrimiGotovuPorudzbinu(brPrimljenihBajtova, StoloviRepozitorijum.stolovi, bufferPorudzbina))
+                                                OsobljeRepozitorijum.osoblje.Remove(s) ;
+                                            else
+                                                OsobljeRepozitorijum.osoblje[s].status = StatusOsoblja.SLOBODAN;
                                         }
                                         else
                                         {
@@ -176,7 +196,7 @@ namespace Server4
                                         if (p.kategorija == Kategorija.HRANA)
                                         {
                                             //nadji slobodnog kuvara
-                                            if (NadjiSlobodnogKuvara(osoblje, p))
+                                            if (NadjiSlobodnogKuvara(OsobljeRepozitorijum.osoblje, p))
                                             {
                                                 Console.WriteLine($"{"[SALJEM KUVARU]",-18} Porudzbina <" + p.nazivArtikla + "> prosledjena kuvaru!");
                                             } 
@@ -188,7 +208,7 @@ namespace Server4
                                         else
                                         {
                                             //nadji slobodnog barmena
-                                            if (NadjiSlobodnogBarmena(osoblje, p))
+                                            if (NadjiSlobodnogBarmena(OsobljeRepozitorijum.osoblje, p))
                                             {
                                                 Console.WriteLine($"{"[SALJEM BARMENU]",-18} Porudzbina <" + p.nazivArtikla + "> prosledjena barmenu!");
                                             }
@@ -205,7 +225,7 @@ namespace Server4
                                 }
                                 #endregion
                                 //slanje porudzbine nazad kuvaru
-                                SlanjeGotovePorudzbineKonobaru(konobarPoStolu, stolovi);
+                                SlanjeGotovePorudzbineKonobaru(konobarPoStolu, StoloviRepozitorijum.stolovi);
                             }
                         }
                     }
@@ -252,7 +272,7 @@ namespace Server4
             }
             konobarPoStolu.Remove(zapamcenBrStola);
         }
-        private static void PrimiGotovuPorudzbinu(int brPrimljenihBajtova, List<Sto> stolovi, byte[] bufferPorudzbina)
+        private static bool PrimiGotovuPorudzbinu(int brPrimljenihBajtova, List<Sto> stolovi, byte[] bufferPorudzbina)
         {
             //byte[] bufferPorudzbina = new byte[1024];
             if (brPrimljenihBajtova > 0)
@@ -274,7 +294,9 @@ namespace Server4
                         }
                     }
                 }
+                return true;
             }
+            else { return false; }
         }
         private static bool NadjiSlobodnogBarmena(Dictionary<Socket, Osoblje> osoblje, Porudzbina p)
         {
@@ -378,21 +400,27 @@ namespace Server4
         private static Osoblje KoSeObratio(Socket client)
         {
             byte[] typeBuffer = new byte[1024];
-            int bytes = client.Receive(typeBuffer);
-            if (Encoding.UTF8.GetString(typeBuffer, 0, bytes).Equals("TIP:KONOBAR"))
+            while (true)
             {
-                Osoblje o = new Osoblje(TipOsoblja.KONOBAR, StatusOsoblja.SLOBODAN);
-                return o;
-            }
-            else if (Encoding.UTF8.GetString(typeBuffer, 0, bytes).Equals("TIP:KUVAR"))
-            {
-                Osoblje o = new Osoblje(TipOsoblja.KUVAR, StatusOsoblja.SLOBODAN);
-                return o;
-            }
-            else
-            {
-                Osoblje o = new Osoblje(TipOsoblja.BARMEN, StatusOsoblja.SLOBODAN);
-                return o;
+                if (client.Poll(0, SelectMode.SelectRead))
+                {
+                    int bytes = client.Receive(typeBuffer);
+                    if (Encoding.UTF8.GetString(typeBuffer, 0, bytes).Equals("TIP:KONOBAR"))
+                    {
+                        Osoblje o = new Osoblje(TipOsoblja.KONOBAR, StatusOsoblja.SLOBODAN);
+                        return o;
+                    }
+                    else if (Encoding.UTF8.GetString(typeBuffer, 0, bytes).Equals("TIP:KUVAR"))
+                    {
+                        Osoblje o = new Osoblje(TipOsoblja.KUVAR, StatusOsoblja.SLOBODAN);
+                        return o;
+                    }
+                    else
+                    {
+                        Osoblje o = new Osoblje(TipOsoblja.BARMEN, StatusOsoblja.SLOBODAN);
+                        return o;
+                    }
+                }
             }
         }
     }
