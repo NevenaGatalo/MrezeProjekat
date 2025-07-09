@@ -19,11 +19,11 @@ namespace Konobar
         {
 
             Socket clientSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001);
+            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50001);
 
 
             Socket clientSocketUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
+            IPEndPoint destinationEP = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50002); // Odredisni IPEndPoint, IP i port ka kome saljemo. U slucaju 8. tacke je potrebno uneti IP adresu server racunara
            
             EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
 
@@ -33,31 +33,32 @@ namespace Konobar
 
             //konobar salje poruku da je konobar
             int brBajtaPorudzbine = clientSocketTCP.Send(Encoding.UTF8.GetBytes("TIP:KONOBAR"));
-            Console.WriteLine("Klijent je uspesno povezan sa serverom!");
+            Console.WriteLine("Konobar je uspesno povezan sa serverom!");
 
+            Console.WriteLine("==============================KONOBAR================================");
             while (true)
             {
                 byte[] buffer = new byte[1024];
                 byte[] prijemniBafer = new byte[1024];
-                Console.WriteLine("----------Unos stanja stolova-------------");
-                Console.WriteLine("Unesite broj stola: ");
+                Console.WriteLine("\n------------------------Unos stanja stolova--------------------------");
+                Console.Write("Unesite broj stola: ");
                 int brojStola;
                 int.TryParse(Console.ReadLine(), out brojStola);
-                Console.WriteLine("Unesite broj gostiju: ");
+                Console.Write("Unesite broj gostiju: ");
                 int brojGostiju;
                 int.TryParse(Console.ReadLine(),out brojGostiju);
 
 
-                Console.WriteLine("\nUnos porudzbina za sto:");
+                Console.WriteLine("\n-----------------------Unos porudzbina za sto------------------------");
                 
                 List<Porudzbina> porudzbine = new List<Porudzbina>();
-                for (int i = 0; i < brojGostiju; i++)
+                for (int i = 1; i <= brojGostiju; i++)
                 {
                     Porudzbina porudzbina = new Porudzbina();
-                    Console.WriteLine("Porudzbina za gosta br. " + i+1);
-                    Console.WriteLine("Naziv artikla: ");
+                    Console.WriteLine("\nPorudzbina za gosta broj " + i);
+                    Console.Write("Naziv artikla > ");
                     string nazivArtikla = Console.ReadLine();
-                    Console.WriteLine("Kategorija porudzbine: 0 - PICE 1 - HRANA");
+                    Console.Write("Kategorija porudzbine: 0 - PICE 1 - HRANA > ");
                     string kategorijaString = Console.ReadLine();
                     int kategorija;
                     int.TryParse(kategorijaString, out kategorija);
@@ -73,10 +74,8 @@ namespace Konobar
                     //porudzbina.status = StatusPorudzbina.U_PRIPREMI;
                     porudzbina.brojStola = brojStola;
                     porudzbine.Add(porudzbina);
-
-
-                    Console.WriteLine("Status porudzbine: " + porudzbina.status);
                 }
+
                 Sto sto = new Sto()
                 {
                     brStola = brojStola,
@@ -86,18 +85,16 @@ namespace Konobar
 
                 try
                 {
-                    //salje poruku SALJEM PORUDZBINU
-                    //int brBajtaInfoPoruke = clientSocketTCP.Send(Encoding.UTF8.GetBytes("SLANJE PORUDZBINE"));
 
                     BinaryFormatter formatter = new BinaryFormatter();
+                    //salje stanje stola
                     using (MemoryStream ms = new MemoryStream())
                     {
                         formatter.Serialize(ms, sto);
                         byte[] data = ms.ToArray();
 
                         int brBajta = clientSocketUDP.SendTo(data, 0, data.Length, SocketFlags.None, destinationEP);
-                        Console.WriteLine("Stanje stola prosledjeno serveru");
-                       
+                        Console.WriteLine($"\n{"[STANJE STOLA]",-18} Stanje stola prosledjeno serveru.");
                     }
 
                     //salje listu porudzbina serveru
@@ -107,34 +104,35 @@ namespace Konobar
                         byte[] data = ms.ToArray();
 
                         clientSocketTCP.Send(data);
-                        Console.WriteLine("Porudzbina prosledjena serveru");
+                        Console.WriteLine($"{"[PORUDZBINE]",-18} Porudzbine prosledjena serveru.");
 
                     }
                     porudzbine.Clear();
 
                     //konobar salje zahtev za racun
-                    Console.WriteLine("Saljem zahtev za racun serveru...");
+                    Console.WriteLine($"\n{"[ZAHTEV ZA RACUN]",-18} Saljem zahtev za racun serveru...");
 
 
                     byte[] racun = new byte[4]; // int zauzima 4 bajta
                     int brPrimljenihBajtova = clientSocketTCP.Receive(racun);
 
                     int broj = BitConverter.ToInt32(racun, 0); // pretvori bajtove nazad u int
-                    Console.WriteLine($"Racun stola" + brojStola + " iznosi: " + broj);
+                    Console.WriteLine($"{"[RACUN]",-18} Racun stola broj " + brojStola + " iznosi > " + broj + " dinara.");
                     
                     Random randNovac = new Random();
                     int kusur = randNovac.Next(broj, 2 * broj) - broj;
-                    Console.WriteLine("Kusur stola broj " + brojStola+  "iznosi: " + kusur);
+                    Console.WriteLine($"{"[KUSUR]",-18} Kusur stola broj " + brojStola+  " iznosi > " + kusur + " dinara.");
 
                     //konobar prima gotove porudzbine
                     byte[] brojStolaGotovePorudzbine = new byte[4]; // int zauzima 4 bajta
                     int brPrimljenihBajtovaGotovePorudzbine = clientSocketTCP.Receive(brojStolaGotovePorudzbine);
                     int konvertovanBrojStola = BitConverter.ToInt32(brojStolaGotovePorudzbine, 0);
-                    Console.WriteLine("Dostavljena porudzbina za sto broj" + konvertovanBrojStola);
+                    Console.WriteLine($"\n{"[DOSTAVLJENO]",-18} Dostavljena porudzbina za sto broj > " + konvertovanBrojStola);
 
                     if (Console.ReadLine().Equals("stop"))
                         break;
 
+                    Console.WriteLine("=====================================================================");
                 }
                 catch (SocketException ex)
                 {

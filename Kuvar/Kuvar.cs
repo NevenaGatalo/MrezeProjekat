@@ -20,7 +20,7 @@ namespace Kuvar
         static void Main(string[] args)
         {
             Socket clientSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001);
+            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50001);
 
             EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
 
@@ -30,10 +30,12 @@ namespace Kuvar
             int brBajtaPorudzbine = clientSocketTCP.Send(Encoding.UTF8.GetBytes("TIP:KUVAR"));
             Console.WriteLine("Kuvar je uspesno povezan sa serverom!");
 
+            Console.WriteLine("==============================KUVAR================================");
             while (true)
             {
                 try
                 {
+                    Console.WriteLine($"\n{"[WAITING]",-12} Čeka se porudžbina...");
                     byte[] porudzbina = new byte[1024];
                     int brPrimljenihBajtova = clientSocketTCP.Receive(porudzbina);
                     if(brPrimljenihBajtova == 0)
@@ -46,10 +48,13 @@ namespace Kuvar
                         //prima porudzbinu koju treba da napravi
                         BinaryFormatter bf = new BinaryFormatter();
                         p = bf.Deserialize(ms) as Porudzbina;
+                        Console.WriteLine($"\n{"[PRIMLJENO]", -12} Porudzbina: " + p.nazivArtikla);
                     }
-                    Console.WriteLine("Primljena porudzbina: " + p.nazivArtikla);
-                    //Thread.Sleep(2000);
+                    
+                    Console.WriteLine($"{"[OBRADA]",-12} Priprema jela...");
+                    Thread.Sleep(2000);
                     p.status = StatusPorudzbina.SPREMNO;
+                    Console.WriteLine($"{"[SPREMNO]",-12} Porudzbina je spremna.");
                     
 
                     using (MemoryStream msSend = new MemoryStream()) {
@@ -58,8 +63,9 @@ namespace Kuvar
                         byte[] data = msSend.ToArray();
 
                         clientSocketTCP.Send(data);
-                        Console.WriteLine("Porudzbina spremna i prosledjena serveru");
+                        Console.WriteLine($"{"[SLANJE]",-12} Porudzbina prosledjena serveru.");
                     }
+                    Console.WriteLine("===================================================================");
                         ////prima listu porudzbina koje treba da napravi
                         //BinaryFormatter bf = new BinaryFormatter();
                         //List<Porudzbina> primljenePorudzbine = bf.Deserialize(ms) as List<Porudzbina>;

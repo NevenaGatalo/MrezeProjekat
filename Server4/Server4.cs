@@ -35,7 +35,8 @@ namespace Server4
             serverSocketTCP.Listen(maxKlijenata);
 
 
-            Console.WriteLine($"Server je stavljen u stanje osluskivanja i ocekuje komunikaciju na {serverEPTCP}");
+            Console.WriteLine("=============================================SERVER===============================================");
+            Console.WriteLine($"{"[INFO]",-18} Server je stavljen u stanje osluskivanja i ocekuje komunikaciju na {serverEPTCP}\n");
 
 
             List<Sto> stolovi = new List<Sto>()
@@ -62,7 +63,7 @@ namespace Server4
                     acceptedSockets.Add(acceptedSocket);
                     Osoblje o = KoSeObratio(acceptedSocket);
                     osoblje[acceptedSocket] = o;
-                    Console.WriteLine("Povezao se "+ o.tip +"! Njegova adresa je " + clientEP);
+                    Console.WriteLine($"{"[KLIJENT]",-18} Povezao se "+ o.tip.ToString().ToLower() +"! Njegova adresa je " + clientEP);
                 }
                 if (acceptedSockets.Count < maxKlijenata)
                 {
@@ -91,7 +92,7 @@ namespace Server4
                                     }
                                     Sto zauzetSto = DeserializacijaStola(prijemniBaferSto, brBajtaUDP, stolovi);
                                     konobarPoStolu[zauzetSto.brStola] = s;
-                                    Console.WriteLine($"Primljen sto br {zauzetSto.brStola} sa {zauzetSto.brGostiju} gostiju.");
+                                    Console.WriteLine($"\n{"[STO]",-18} Zauzet sto broj {zauzetSto.brStola}, sa brojem gostiju: {zauzetSto.brGostiju}.");
 
                                     //primanje liste porudzbina od konobara
                                     byte[] prijemniBaferPorudzbina = new byte[1024];
@@ -102,20 +103,20 @@ namespace Server4
                                         break;
                                     }
                                     DeserializacijaPorudzbina(prijemniBaferPorudzbina, brBajtaTCP, stolovi, porudzbine);
-                                    Console.WriteLine("Primljena porudzbina stola broj " + zauzetSto.brStola);
+                                    Console.WriteLine($"\n{"[PORUDZBINE]",-18} Pristigle porudzbine");
                                     for (int i = 0; i < porudzbine.Count; i++)
                                     {
-                                        Console.WriteLine(i + 1 + ". " + porudzbine[i].nazivArtikla);
+                                        Console.WriteLine("\t\t\t" + (i+1) + ". " + porudzbine[i].nazivArtikla);
                                     }
 
                                     //obracun i slanje racuna konobaru
                                     int racun = ObracunRacuna(stolovi, zauzetSto);
                                     byte[] data = BitConverter.GetBytes(racun);
                                     s.Send(data);
-                                    Console.WriteLine("Poslat racun konobaru za sto broj: " + zauzetSto.brStola);
+                                    Console.WriteLine($"{"[RACUN]",-18} Poslat racun konobaru za sto broj: " + zauzetSto.brStola + ". Racun iznosi " + racun + " dinara.\n");
                                 }
                                 #endregion
-                                #region Obracanje Kuvara
+                                #region Obracanje kuvara
                                 else if (osoblje[s].tip == TipOsoblja.KUVAR)
                                 {
                                     try
@@ -130,25 +131,46 @@ namespace Server4
                                         else
                                         {
                                             // Nema podataka za čitanje, idi dalje (ne blokira)
-                                            Console.WriteLine("Kuvar nema sta da posalje sada");
+                                            Console.WriteLine($"{"[ZAUZET]",-18} Kuvar nema sta da posalje sada");
                                             continue;
                                         }
                                     }
                                     catch (SocketException ex)
                                     {
-                                        Console.WriteLine("Greška prilikom primanja od kuvara: " + ex.Message);
+                                        Console.WriteLine($"{"[GRESKA]",-18} Greška prilikom primanja od kuvara: " + ex.Message);
                                     }
                                 }
                                 #endregion
+                                #region Obracanje barmena
                                 else
                                 {
-                                    //pozovi metodu
+                                    try
+                                    {
+                                        byte[] bufferPorudzbina = new byte[1024];
+                                        if (s.Available > 0)
+                                        {
+                                            int brPrimljenihBajtova = s.Receive(bufferPorudzbina);
+                                            PrimiGotovuPorudzbinu(brPrimljenihBajtova, stolovi, bufferPorudzbina);
+                                            osoblje[s].status = StatusOsoblja.SLOBODAN;
+                                        }
+                                        else
+                                        {
+                                            // Nema podataka za čitanje, idi dalje (ne blokira)
+                                            Console.WriteLine($"{"[ZAUZET]",-18} Barmen nema sta da posalje sada");
+                                            continue;
+                                        }
+                                    }
+                                    catch (SocketException ex)
+                                    {
+                                        Console.WriteLine($"{"[GRESKA]",-18} Greška prilikom primanja od barmena: " + ex.Message);
+                                    }
                                 }
+                                #endregion
                                 //slanje porudzbina kuvaru/barmenu
                                 #region Slanje porudzbine kuvaru/barmenu
                                 if (porudzbine.Count > 0)
                                 {
-                                    Porudzbina poslataPorudzbina = null;
+                                    List<Porudzbina> neobradjenePorudzbine = new List<Porudzbina>();
                                     foreach (var p in porudzbine)
                                     {
                                         if (p.kategorija == Kategorija.HRANA)
@@ -156,9 +178,11 @@ namespace Server4
                                             //nadji slobodnog kuvara
                                             if (NadjiSlobodnogKuvara(osoblje, p))
                                             {
-                                                poslataPorudzbina = p;
-                                                Console.WriteLine("Porudzbina prosledjena kuvaru!");
-                                                Console.WriteLine("Naziv por: " + p.nazivArtikla);
+                                                Console.WriteLine($"{"[SALJEM KUVARU]",-18} Porudzbina <" + p.nazivArtikla + "> prosledjena kuvaru!");
+                                            } 
+                                            else
+                                            {
+                                                neobradjenePorudzbine.Add(p);
                                             }
                                         }
                                         else
@@ -166,20 +190,18 @@ namespace Server4
                                             //nadji slobodnog barmena
                                             if (NadjiSlobodnogBarmena(osoblje, p))
                                             {
-                                                poslataPorudzbina = p;
-                                                Console.WriteLine("Status porudzbine: " + p.status);
-                                                Console.WriteLine("Porudzbina prosledjena barmenu!");
+                                                Console.WriteLine($"{"[SALJEM BARMENU]",-18} Porudzbina <" + p.nazivArtikla + "> prosledjena barmenu!");
+                                            }
+                                            else
+                                            {
+                                                neobradjenePorudzbine.Add(p);
                                             }
                                         }
                                         //dodaj u neobradjene porudzbine
                                         //if (p.status != StatusPorudzbina.U_PRIPREMI)
                                         //    neobradjenePorudzbine.Add(p);
                                     }
-                                    if (poslataPorudzbina != null)
-                                    {
-                                        porudzbine.Remove(poslataPorudzbina);
-                                    }
-                                    //porudzbine = neobradjenePorudzbine
+                                    porudzbine = neobradjenePorudzbine;
                                 }
                                 #endregion
                                 //slanje porudzbine nazad kuvaru
@@ -223,7 +245,7 @@ namespace Server4
                             //posalji za koji sto su porudzbine gotove
                             byte[] data = BitConverter.GetBytes(sto.brStola);
                             konobarPoStolu[brojStola].Send(data);
-                            Console.WriteLine("Porudzbine poslate nazad konobaru");
+                            Console.WriteLine($"{"[SALJEM KONOBARU]",-18} Porudzbine poslate nazad konobaru.");
                         }
                     }
                 }
@@ -239,8 +261,6 @@ namespace Server4
                 {
                     BinaryFormatter bf = new BinaryFormatter();
                     Porudzbina p = bf.Deserialize(ms) as Porudzbina;
-
-                    Console.WriteLine("Porudzbina: " + p.nazivArtikla);
 
                     foreach (Sto st in stolovi)
                     {
