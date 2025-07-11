@@ -16,5 +16,12 @@ namespace Biblioteka
                 new Sto() {brStola=4, brGostiju = 0, status = StatusSto.SLOBODAN},
                 new Sto() {brStola=5, brGostiju = 0, status = StatusSto.SLOBODAN}
             };
+        public static void IspisiStolove()
+        {
+            foreach(Sto s in stolovi)
+            {
+                Console.WriteLine(s.brStola + " - " + s.status);
+            }
+        }
     }
 }

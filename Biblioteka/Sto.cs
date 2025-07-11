@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Biblioteka
 {
-    public enum StatusSto { ZAUZET, SLOBODAN }
+    public enum StatusSto { ZAUZET, SLOBODAN, REZERVISAN }
     [Serializable]
     public class Sto
     {
