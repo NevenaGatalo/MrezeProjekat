@@ -11,6 +11,7 @@ using System.Runtime.Serialization;
 using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Net.NetworkInformation;
+using System.Threading;
 
 namespace Server4
 {
@@ -22,13 +23,19 @@ namespace Server4
             Socket serverSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             IPEndPoint serverEPTCP = new IPEndPoint(IPAddress.Any, 50001);
 
-            //udp konekcija
-            Socket serverSocketUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint serverEPUDP = new IPEndPoint(IPAddress.Any, 50002);
-            EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
+            //udp konekcija Stanje stolova
+            Socket serverSocketStanjeStolovaUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            IPEndPoint serverEPStanjeStolovaUDP = new IPEndPoint(IPAddress.Any, 50002);
+            EndPoint posiljaocStanjeStolovaEP = new IPEndPoint(IPAddress.Any, 0);
+
+            //udp konekcija rezervacije
+            Socket serverSocketRezervacijeUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            IPEndPoint serverEPRezervacijeUDP = new IPEndPoint(IPAddress.Any, 50003);
+            EndPoint posiljaocRezervacijeEP = new IPEndPoint(IPAddress.Any, 0);
 
             serverSocketTCP.Bind(serverEPTCP);
-            serverSocketUDP.Bind(serverEPUDP);
+            serverSocketRezervacijeUDP.Bind(serverEPRezervacijeUDP);
+            serverSocketStanjeStolovaUDP.Bind(serverEPStanjeStolovaUDP);
 
             serverSocketTCP.Blocking = false;
             int maxKlijenata = 5;
@@ -53,6 +60,21 @@ namespace Server4
             List<Porudzbina> porudzbine = new List<Porudzbina>();
             Dictionary<int, Socket> konobarPoStolu = new Dictionary<int, Socket>();
             //List<Porudzbina> neobradjenePorudzbine = new List<Porudzbina>();
+
+            //proverava da li su rezervacije istekle i cisti ih
+            Task.Run(() =>
+            {
+                DateTime vremePocetka = DateTime.Now;
+                while (true)
+                {
+                    Thread.Sleep(5000); // proverava svakih 5 sekundi (može i češće)
+                    int simuliraniSat = (int)(DateTime.Now - vremePocetka).TotalMinutes;
+                    Console.WriteLine(RezervacijeStolova.RezervacijeToString());
+                    RezervacijeStolova.OčistiIstekleRezervacije(simuliraniSat);
+                    Console.WriteLine($"[SIMULACIJA VREMENA] Trenutni simulirani sat: {simuliraniSat}h");
+                }
+            });
+
 
             while (true)
             {
@@ -97,39 +119,43 @@ namespace Server4
                                 #region Obracanje konobara
                                 if (OsobljeRepozitorijum.osoblje[s].tip == TipOsoblja.KONOBAR)
                                 {
-                                    //primanje stanja stola
-                                    byte[] prijemniBaferSto = new byte[1024];
-                                    int brBajtaUDP = serverSocketUDP.ReceiveFrom(prijemniBaferSto, ref posiljaocEP);
+                                    
+                                        
 
-                                    if (brBajtaUDP == 0)
-                                    {
-                                        break;
-                                    }
-                                    Sto zauzetSto = DeserializacijaStola(prijemniBaferSto, brBajtaUDP, StoloviRepozitorijum.stolovi);
-                                    konobarPoStolu[zauzetSto.brStola] = s;
-                                    Console.WriteLine($"\n{"[STO]",-18} Zauzet sto broj {zauzetSto.brStola}, sa brojem gostiju: {zauzetSto.brGostiju}.");
+                                        //primanje stanja stola
+                                        byte[] prijemniBaferSto = new byte[1024];
+                                        int brBajtaUDP = serverSocketStanjeStolovaUDP.ReceiveFrom(prijemniBaferSto, ref posiljaocStanjeStolovaEP);
 
-                                    //primanje liste porudzbina od konobara
-                                    byte[] prijemniBaferPorudzbina = new byte[1024];
-                                    int brBajtaTCP = s.Receive(prijemniBaferPorudzbina);
-                                    if (brBajtaTCP == 0)
-                                    {
-                                        OsobljeRepozitorijum.osoblje.Remove(s);
-                                        Console.WriteLine("Konobar je zavrsio sa radom");
-                                        break;
-                                    }
-                                    DeserializacijaPorudzbina(prijemniBaferPorudzbina, brBajtaTCP, StoloviRepozitorijum.stolovi, porudzbine);
-                                    Console.WriteLine($"\n{"[PORUDZBINE]",-18} Pristigle porudzbine");
-                                    for (int i = 0; i < porudzbine.Count; i++)
-                                    {
-                                        Console.WriteLine("\t\t\t" + (i+1) + ". " + porudzbine[i].nazivArtikla);
-                                    }
+                                        if (brBajtaUDP == 0)
+                                        {
+                                            break;
+                                        }
+                                        Sto zauzetSto = DeserializacijaStola(prijemniBaferSto, brBajtaUDP, StoloviRepozitorijum.stolovi);
+                                        konobarPoStolu[zauzetSto.brStola] = s;
+                                        Console.WriteLine($"\n{"[STO]",-18} Zauzet sto broj {zauzetSto.brStola}, sa brojem gostiju: {zauzetSto.brGostiju}.");
 
-                                    //obracun i slanje racuna konobaru
-                                    int racun = ObracunRacuna(StoloviRepozitorijum.stolovi, zauzetSto);
-                                    byte[] data = BitConverter.GetBytes(racun);
-                                    s.Send(data);
-                                    Console.WriteLine($"{"[RACUN]",-18} Poslat racun konobaru za sto broj: " + zauzetSto.brStola + ". Racun iznosi " + racun + " dinara.\n");
+                                        //primanje liste porudzbina od konobara
+                                        byte[] prijemniBaferPorudzbina = new byte[1024];
+                                        int brBajtaTCP = s.Receive(prijemniBaferPorudzbina);
+                                        if (brBajtaTCP == 0)
+                                        {
+                                            OsobljeRepozitorijum.osoblje.Remove(s);
+                                            Console.WriteLine("Konobar je zavrsio sa radom");
+                                            break;
+                                        }
+                                        DeserializacijaPorudzbina(prijemniBaferPorudzbina, brBajtaTCP, StoloviRepozitorijum.stolovi, porudzbine);
+                                        Console.WriteLine($"\n{"[PORUDZBINE]",-18} Pristigle porudzbine");
+                                        for (int i = 0; i < porudzbine.Count; i++)
+                                        {
+                                            Console.WriteLine("\t\t\t" + (i + 1) + ". " + porudzbine[i].nazivArtikla);
+                                        }
+
+                                        //obracun i slanje racuna konobaru
+                                        int racun = ObracunRacuna(StoloviRepozitorijum.stolovi, zauzetSto);
+                                        byte[] data = BitConverter.GetBytes(racun);
+                                        s.Send(data);
+                                        Console.WriteLine($"{"[RACUN]",-18} Poslat racun konobaru za sto broj: " + zauzetSto.brStola + ". Racun iznosi " + racun + " dinara.\n");
+                                    
                                 }
                                 #endregion
                                 #region Obracanje kuvara
@@ -228,6 +254,33 @@ namespace Server4
                                 SlanjeGotovePorudzbineKonobaru(konobarPoStolu, StoloviRepozitorijum.stolovi);
                             }
                         }
+                        #region Primanje rezervacija
+                        if (serverSocketRezervacijeUDP.Poll(1500 * 1000, SelectMode.SelectRead))
+                        {
+                            //primi rezervaciju
+                            byte[] rezervacijaBytes = new byte[4096];
+                            //EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
+
+                            // primanje poruke
+                            int primljeno = serverSocketRezervacijeUDP.ReceiveFrom(rezervacijaBytes, ref posiljaocRezervacijeEP);
+
+                            // deserijalizacija rezervacije
+                            using (MemoryStream ms = new MemoryStream(rezervacijaBytes, 0, primljeno))
+                            {
+                                BinaryFormatter formatter = new BinaryFormatter();
+                                var rezervacije = (Dictionary<int, Tuple<int, string>>)formatter.Deserialize(ms);
+
+                                // upiši u lokalnu strukturu
+                                foreach (var r in rezervacije)
+                                {
+                                    RezervacijeStolova.rezervacije[r.Key] = r.Value;
+                                }
+
+                                Console.WriteLine("Rezervacija uspešno primljena.");
+                            }
+                            Console.WriteLine(RezervacijeStolova.RezervacijeToString());
+                        }
+                        #endregion
                     }
                     catch (SocketException ex)
                     {
@@ -238,6 +291,7 @@ namespace Server4
                 //potencijalno dodaj brisanje iz dictinary osoblje
                 acceptedSockets.Clear();
             }
+
         }
         private static void SlanjeGotovePorudzbineKonobaru(Dictionary<int, Socket> konobarPoStolu, List<Sto> stolovi)
         {

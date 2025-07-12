@@ -9,27 +9,49 @@ namespace Biblioteka
     public class RezervacijeStolova
     {
         //brstola       satRez  imeRez
-        public static Dictionary<int, Dictionary<int, string>> rezervacije = new Dictionary<int, Dictionary<int, string>>();
+        //public static Dictionary<int, Dictionary<int, string>> rezervacije = new Dictionary<int, Dictionary<int, string>>();
+        public static Dictionary<int, Tuple<int, string>> rezervacije = new Dictionary<int, Tuple<int, string>>();
 
         public static string RezervacijeToString()
         {
             StringBuilder sb = new StringBuilder();
 
-            foreach (var stoEntry in rezervacije)
+            foreach (var kvp in rezervacije)
             {
-                int stoId = stoEntry.Key;
-                var vremenskeRezervacije = stoEntry.Value;
+                int stoId = kvp.Key;
+                int sat = kvp.Value.Item1;
+                string ime = kvp.Value.Item2;
 
-                foreach (var rez in vremenskeRezervacije)
+                sb.AppendLine($"Sto {stoId}: {sat}h - {ime}");
+            }
+            return sb.ToString();
+        }
+        public static void OčistiIstekleRezervacije(int trenutniSat)
+        {
+            Console.WriteLine("rezervacije pre brisanja:");
+            Console.WriteLine(RezervacijeToString());
+
+            var zaBrisanje = rezervacije
+                .Where(kvp => kvp.Value.Item1 < trenutniSat)
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            foreach (var sto in zaBrisanje)
+            {
+                rezervacije.Remove(sto);
+
+                foreach (var s in StoloviRepozitorijum.stolovi)
                 {
-                    int sat = rez.Key;
-                    string ime = rez.Value;
-
-                    sb.AppendLine($"Sto {stoId}: {sat}h - {ime}");
+                    if (s.brStola == sto)
+                    {
+                        s.status = StatusSto.SLOBODAN;
+                        Console.WriteLine("oslobodjen sto br: " + s.brStola + " status: " + s.status);
+                        break;
+                    }
                 }
             }
-
-            return sb.ToString();
+            Console.WriteLine("rezervacije posle brisanja:");
+            Console.WriteLine(RezervacijeToString());
         }
 
     }
