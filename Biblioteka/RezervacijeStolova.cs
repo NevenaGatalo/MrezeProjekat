@@ -26,10 +26,10 @@ namespace Biblioteka
             }
             return sb.ToString();
         }
-        public static void OčistiIstekleRezervacije(int trenutniSat)
+        public static List<int> OčistiIstekleRezervacije(int trenutniSat)
         {
-            Console.WriteLine("rezervacije pre brisanja:");
-            Console.WriteLine(RezervacijeToString());
+            //Console.WriteLine("rezervacije pre brisanja:");
+            //Console.WriteLine(RezervacijeToString());
 
             var zaBrisanje = rezervacije
                 .Where(kvp => kvp.Value.Item1 < trenutniSat)
@@ -50,8 +50,9 @@ namespace Biblioteka
                     }
                 }
             }
-            Console.WriteLine("rezervacije posle brisanja:");
-            Console.WriteLine(RezervacijeToString());
+            //Console.WriteLine("rezervacije posle brisanja:");
+            //Console.WriteLine(RezervacijeToString());
+            return zaBrisanje;
         }
 
     }

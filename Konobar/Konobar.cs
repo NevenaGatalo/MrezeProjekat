@@ -43,18 +43,56 @@ namespace Konobar
             Console.WriteLine("Konobar je uspesno povezan sa serverom!");
 
             Console.WriteLine("==============================KONOBAR================================");
-            while (true)
+            bool radi = true;
+            while (radi)
             {
+
+
+                //task za primanje isteklih porudzbina
+                Task.Run(() =>
+                {
+                    while (true)
+                    {
+                        try
+                        {
+                            byte[] buffer = new byte[1024];
+                            EndPoint serverEP = new IPEndPoint(IPAddress.Any, 0);
+                            int brBajtova = clientSocketRezevacijeUDP.ReceiveFrom(buffer, ref serverEP);
+
+
+                            BinaryFormatter bf = new BinaryFormatter();
+                            using (MemoryStream ms = new MemoryStream(buffer, 0, brBajtova))
+                            {
+                                var lista = (List<int>)bf.Deserialize(ms);
+                                //azurira status stola nakon istekle rezervacije
+                                foreach (var item in lista)
+                                {
+                                    foreach(Sto s in StoloviRepozitorijum.stolovi)
+                                    {
+                                        if (item == s.brStola && s.status == StatusSto.REZERVISAN)
+                                        {
+                                            s.status = StatusSto.SLOBODAN;
+                                            Console.WriteLine("\n[INFO] Istekla rezervacija za sto: " + s.brStola);
+                                            StoloviRepozitorijum.IspisiStolove();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch (SocketException) { }
+                    }
+                });
+
                 //meni
                 int opcija = Meni();
-
 
                 BinaryFormatter formatter = new BinaryFormatter();
                 switch (opcija)
                 {
                     case 1:
                         int brStola = UnosRezervacije();
-                        StoloviRepozitorijum.IspisiStolove();
+                        //treba da se zauzme sto brStola
+                        //StoloviRepozitorijum.IspisiStolove();
                         Console.WriteLine(RezervacijeStolova.RezervacijeToString());
 
                         //treba da posaljem rezervaciju
@@ -66,24 +104,23 @@ namespace Konobar
 
                             int bytesSent = clientSocketRezevacijeUDP.SendTo(data, 0, data.Length, SocketFlags.None, destinationEPRezervacije);
 
-                            Console.WriteLine($"Poslato {bytesSent} bajtova rezervacija preko UDP.");
+                            //Console.WriteLine($"Poslato {bytesSent} bajtova rezervacija preko UDP.");
                         }
                         #endregion
 
                         break;
                     case 2:
-
                         byte[] buffer = new byte[1024];
                         byte[] prijemniBafer = new byte[1024];
-                        //pita ga da li imate rez
-                            //ne -> unos stanja stolova
-                            //da -> unesite na cije ime je rez
                         Console.WriteLine("\n------------------------Unos stanja stolova--------------------------");
-                        //ispise sve stolove
-                        Console.Write("Unesite broj stola: ");
+                        StoloviRepozitorijum.IspisiStolove();
+
                         int brojStola;
-                        int.TryParse(Console.ReadLine(), out brojStola);
-                        //provera da li je unet slobodan sto
+                        do
+                        {
+                            Console.Write("Unesite broj stola: ");
+                        } while (!int.TryParse(Console.ReadLine(), out brojStola) || !DaLiJeStoSlobodan(brojStola));
+
                         Console.Write("Unesite broj gostiju: ");
                         int brojGostiju;
                         int.TryParse(Console.ReadLine(), out brojGostiju);
@@ -111,7 +148,6 @@ namespace Konobar
                             else
                                 porudzbina.kategorija = Kategorija.HRANA;
                             porudzbina.cena = cena;
-                            //porudzbina.status = StatusPorudzbina.U_PRIPREMI;
                             porudzbina.brojStola = brojStola;
                             porudzbine.Add(porudzbina);
                         }
@@ -125,7 +161,11 @@ namespace Konobar
 
                         try
                         {
-
+                            foreach (var item in StoloviRepozitorijum.stolovi)
+                            {
+                                if(item.brStola == sto.brStola)
+                                    item.status = StatusSto.ZAUZET;
+                            }
                             //salje stanje stola
                             using (MemoryStream ms = new MemoryStream())
                             {
@@ -168,8 +208,11 @@ namespace Konobar
                             int konvertovanBrojStola = BitConverter.ToInt32(brojStolaGotovePorudzbine, 0);
                             Console.WriteLine($"\n{"[DOSTAVLJENO]",-18} Dostavljena porudzbina za sto broj > " + konvertovanBrojStola);
 
-                            if (Console.ReadLine().Equals("stop"))
-                                break;
+                            foreach(var item in StoloviRepozitorijum.stolovi)
+                            {
+                                if (item.brStola == sto.brStola)
+                                    item.status = StatusSto.SLOBODAN;
+                            }
 
                             Console.WriteLine("=====================================================================");
                         }
@@ -177,6 +220,10 @@ namespace Konobar
                         {
                             Console.WriteLine($"Doslo je do greske tokom slanja poruke: \n{ex}");
                         }
+                        break;
+
+                    case 3:
+                        radi = false;
                         break;
                 }
             }
@@ -187,38 +234,35 @@ namespace Konobar
         }
         private static int Meni()
         {
-            //treba do while
             Console.WriteLine("------------------MENI----------------");
-            Console.WriteLine("1. Napravi rezervaciju\n2. Usluzi gosta");
+            Console.WriteLine("1. Napravi rezervaciju\n2. Usluzi gosta\n3. Prekini sa radom");
             int opcija;
-            while(!Int32.TryParse(Console.ReadLine(), out opcija) || opcija < 1)
+            while(!Int32.TryParse(Console.ReadLine(), out opcija) || opcija < 1 || opcija > 3)
             {
-                Console.WriteLine("Niste uneli validan broj");
+                Console.WriteLine("Unesite validan broj: ");
+
+                Console.WriteLine("1. Napravi rezervaciju\n2. Usluzi gosta\n3. Prekini sa radom");
             }
             return opcija;
         }
         private static int UnosRezervacije()
         {
-            Console.WriteLine("trenutno stanje stolova:");
-            StoloviRepozitorijum.IspisiStolove();
-            Console.WriteLine("izaberite sto koji zelite da rezervisete:");
+            //Console.WriteLine("Izaberite sto koji zelite da rezervisete:");
             int brStola;
 
-            //treba do while
-            while(!Int32.TryParse(Console.ReadLine(), out brStola))
+            do
             {
-                Console.WriteLine("unesite validan broj stola");
-            }
-            while (!DaLiJeStoSlobodan(brStola))
-            {
-                Console.WriteLine("unesite broj slobodnog stola");
-            }
-            Console.WriteLine("za koliko sati je rezervacija");
+                Console.WriteLine("Izaberite sto koji zelite da rezervisete:");
+                StoloviRepozitorijum.IspisiStolove();
+            } while (!Int32.TryParse(Console.ReadLine(), out brStola) || !DaLiJeStoSlobodan(brStola));
+            Console.WriteLine("Za koliko sati je rezervacija?");
             int satRezervacije = int.Parse(Console.ReadLine());
-            Console.WriteLine("na cije ime je rezervacija:");
+            Console.WriteLine("Na cije ime je rezervacija:");
             string imeRezervacije = Console.ReadLine();
             //popuni rezervaciju
             RezervacijeStolova.rezervacije.Add(brStola, new Tuple<int, string> (  satRezervacije, imeRezervacije  ));
+            //oznaci sto kao rezervisan
+            StoloviRepozitorijum.stolovi[brStola - 1].status = StatusSto.REZERVISAN;
             return brStola;
         }
         private static bool DaLiJeStoSlobodan(int brStola)

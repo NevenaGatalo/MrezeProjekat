@@ -1,17 +1,18 @@
-﻿using System;
+﻿using Biblioteka;
+using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Biblioteka;
 using System.IO;
-using System.Runtime.Serialization;
-using System.Runtime.InteropServices.ComTypes;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Linq;
+using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Runtime.InteropServices.ComTypes;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Server4
 {
@@ -61,17 +62,40 @@ namespace Server4
             Dictionary<int, Socket> konobarPoStolu = new Dictionary<int, Socket>();
             //List<Porudzbina> neobradjenePorudzbine = new List<Porudzbina>();
 
+            //lista endpointova konobara koji su se obratili
+            List<EndPoint> konobariEndPoints = new List<EndPoint>();
+
             //proverava da li su rezervacije istekle i cisti ih
             Task.Run(() =>
             {
                 DateTime vremePocetka = DateTime.Now;
                 while (true)
                 {
-                    Thread.Sleep(5000); // proverava svakih 5 sekundi (može i češće)
+                    Thread.Sleep(5000); // proverava svakih 5 sekundi
                     int simuliraniSat = (int)(DateTime.Now - vremePocetka).TotalMinutes;
-                    Console.WriteLine(RezervacijeStolova.RezervacijeToString());
-                    RezervacijeStolova.OčistiIstekleRezervacije(simuliraniSat);
-                    Console.WriteLine($"[SIMULACIJA VREMENA] Trenutni simulirani sat: {simuliraniSat}h");
+                    //Console.WriteLine(RezervacijeStolova.RezervacijeToString());
+                    List<int> zaBrisanje = RezervacijeStolova.OčistiIstekleRezervacije(simuliraniSat);
+                    //posalji listu isteklih rezervacija ako postoji neka istekla rezervacija
+                    if (zaBrisanje.Count != 0)
+                    {
+                        BinaryFormatter formatter = new BinaryFormatter();
+                        using (MemoryStream ms = new MemoryStream())
+                        {
+                            formatter.Serialize(ms, zaBrisanje);
+                            byte[] data = ms.ToArray();
+
+                            foreach (var ep in konobariEndPoints)
+                            {
+                                int bytesSent = serverSocketRezervacijeUDP.SendTo(data, 0, data.Length, SocketFlags.None, ep);
+                                //Console.WriteLine($"Poslato {bytesSent} bajtova konobaru {ep}");
+                            }
+                            //ispis stolova
+                            Console.WriteLine($"{"[INFO]",-18} Istekla rezervacija za sto: {string.Join(", ", zaBrisanje)}\n");
+
+                            StoloviRepozitorijum.IspisiStolove();
+                        }
+                    }
+                    //Console.WriteLine($"[SIMULACIJA VREMENA] Trenutni simulirani sat: {simuliraniSat}h");
                 }
             });
 
@@ -86,7 +110,7 @@ namespace Server4
                     acceptedSockets.Add(acceptedSocket);
                     Osoblje o = KoSeObratio(acceptedSocket);
                     OsobljeRepozitorijum.osoblje[acceptedSocket] = o;
-                    Console.WriteLine($"{"[KLIJENT]",-18} Povezao se "+ o.tip.ToString().ToLower() +"! Njegova adresa je " + clientEP);
+                    Console.WriteLine($"{"[KLIJENT]",-18} Povezao se " + o.tip.ToString().ToLower() + "! Njegova adresa je " + clientEP);
                 }
                 int konobarCount = 0;
                 int kuvarCount = 0;
@@ -101,10 +125,6 @@ namespace Server4
                 {
                     continue;
                 }
-                //if (acceptedSockets.Count < maxKlijenata)
-                //{
-                //    continue;
-                //}
                 while (true)
                 {
                     try
@@ -119,43 +139,45 @@ namespace Server4
                                 #region Obracanje konobara
                                 if (OsobljeRepozitorijum.osoblje[s].tip == TipOsoblja.KONOBAR)
                                 {
-                                    
-                                        
+                                    //primanje stanja stola
+                                    byte[] prijemniBaferSto = new byte[1024];
+                                    int brBajtaUDP = serverSocketStanjeStolovaUDP.ReceiveFrom(prijemniBaferSto, ref posiljaocStanjeStolovaEP);
 
-                                        //primanje stanja stola
-                                        byte[] prijemniBaferSto = new byte[1024];
-                                        int brBajtaUDP = serverSocketStanjeStolovaUDP.ReceiveFrom(prijemniBaferSto, ref posiljaocStanjeStolovaEP);
+                                    if (brBajtaUDP == 0)
+                                    {
+                                        break;
+                                    }
+                                    Sto zauzetSto = DeserializacijaStola(prijemniBaferSto, brBajtaUDP, StoloviRepozitorijum.stolovi);
+                                    konobarPoStolu[zauzetSto.brStola] = s;
+                                    Console.WriteLine($"\n{"[STO]",-18} Zauzet sto broj {zauzetSto.brStola}, sa brojem gostiju: {zauzetSto.brGostiju}.");
+                                    //ispisuje listu stolova
+                                    StoloviRepozitorijum.IspisiStolove();
 
-                                        if (brBajtaUDP == 0)
-                                        {
-                                            break;
-                                        }
-                                        Sto zauzetSto = DeserializacijaStola(prijemniBaferSto, brBajtaUDP, StoloviRepozitorijum.stolovi);
-                                        konobarPoStolu[zauzetSto.brStola] = s;
-                                        Console.WriteLine($"\n{"[STO]",-18} Zauzet sto broj {zauzetSto.brStola}, sa brojem gostiju: {zauzetSto.brGostiju}.");
+                                    //primanje liste porudzbina od konobara
+                                    byte[] prijemniBaferPorudzbina = new byte[1024];
+                                    int brBajtaTCP = s.Receive(prijemniBaferPorudzbina);
+                                    if (brBajtaTCP == 0)
+                                    {
+                                        OsobljeRepozitorijum.osoblje.Remove(s);
+                                        Console.WriteLine("Konobar je zavrsio sa radom");
+                                        break;
+                                    }
+                                    DeserializacijaPorudzbina(prijemniBaferPorudzbina, brBajtaTCP, StoloviRepozitorijum.stolovi, porudzbine);
+                                    Console.WriteLine($"\n{"[PORUDZBINE]",-18} Pristigle porudzbine");
+                                    for (int i = 0; i < porudzbine.Count; i++)
+                                    {
+                                        Console.WriteLine("\t\t\t" + (i + 1) + ". " + porudzbine[i].nazivArtikla + " - " + porudzbine[i].status);
+                                    }
 
-                                        //primanje liste porudzbina od konobara
-                                        byte[] prijemniBaferPorudzbina = new byte[1024];
-                                        int brBajtaTCP = s.Receive(prijemniBaferPorudzbina);
-                                        if (brBajtaTCP == 0)
-                                        {
-                                            OsobljeRepozitorijum.osoblje.Remove(s);
-                                            Console.WriteLine("Konobar je zavrsio sa radom");
-                                            break;
-                                        }
-                                        DeserializacijaPorudzbina(prijemniBaferPorudzbina, brBajtaTCP, StoloviRepozitorijum.stolovi, porudzbine);
-                                        Console.WriteLine($"\n{"[PORUDZBINE]",-18} Pristigle porudzbine");
-                                        for (int i = 0; i < porudzbine.Count; i++)
-                                        {
-                                            Console.WriteLine("\t\t\t" + (i + 1) + ". " + porudzbine[i].nazivArtikla);
-                                        }
+                                    //obracun i slanje racuna konobaru
+                                    int racun = ObracunRacuna(StoloviRepozitorijum.stolovi, zauzetSto);
+                                    byte[] data = BitConverter.GetBytes(racun);
+                                    s.Send(data);
+                                    Console.WriteLine($"{"[RACUN]",-18} Poslat racun konobaru za sto broj: " + zauzetSto.brStola + ". Racun iznosi " + racun + " dinara.\n");
 
-                                        //obracun i slanje racuna konobaru
-                                        int racun = ObracunRacuna(StoloviRepozitorijum.stolovi, zauzetSto);
-                                        byte[] data = BitConverter.GetBytes(racun);
-                                        s.Send(data);
-                                        Console.WriteLine($"{"[RACUN]",-18} Poslat racun konobaru za sto broj: " + zauzetSto.brStola + ". Racun iznosi " + racun + " dinara.\n");
-                                    
+                                    //ispis stolova
+                                    //StoloviRepozitorijum.IspisiStolove();
+
                                 }
                                 #endregion
                                 #region Obracanje kuvara
@@ -167,7 +189,7 @@ namespace Server4
                                         if (s.Available > 0)
                                         {
                                             int brPrimljenihBajtova = s.Receive(bufferPorudzbina);
-                                            if(!PrimiGotovuPorudzbinu(brPrimljenihBajtova, StoloviRepozitorijum.stolovi, bufferPorudzbina))
+                                            if (!PrimiGotovuPorudzbinu(brPrimljenihBajtova, StoloviRepozitorijum.stolovi, bufferPorudzbina))
                                                 OsobljeRepozitorijum.osoblje.Remove(s);
                                             else
                                                 OsobljeRepozitorijum.osoblje[s].status = StatusOsoblja.SLOBODAN;
@@ -194,8 +216,8 @@ namespace Server4
                                         if (s.Available > 0)
                                         {
                                             int brPrimljenihBajtova = s.Receive(bufferPorudzbina);
-                                            if(!PrimiGotovuPorudzbinu(brPrimljenihBajtova, StoloviRepozitorijum.stolovi, bufferPorudzbina))
-                                                OsobljeRepozitorijum.osoblje.Remove(s) ;
+                                            if (!PrimiGotovuPorudzbinu(brPrimljenihBajtova, StoloviRepozitorijum.stolovi, bufferPorudzbina))
+                                                OsobljeRepozitorijum.osoblje.Remove(s);
                                             else
                                                 OsobljeRepozitorijum.osoblje[s].status = StatusOsoblja.SLOBODAN;
                                         }
@@ -225,7 +247,7 @@ namespace Server4
                                             if (NadjiSlobodnogKuvara(OsobljeRepozitorijum.osoblje, p))
                                             {
                                                 Console.WriteLine($"{"[SALJEM KUVARU]",-18} Porudzbina <" + p.nazivArtikla + "> prosledjena kuvaru!");
-                                            } 
+                                            }
                                             else
                                             {
                                                 neobradjenePorudzbine.Add(p);
@@ -263,6 +285,7 @@ namespace Server4
 
                             // primanje poruke
                             int primljeno = serverSocketRezervacijeUDP.ReceiveFrom(rezervacijaBytes, ref posiljaocRezervacijeEP);
+                            konobariEndPoints.Add(posiljaocRezervacijeEP);
 
                             // deserijalizacija rezervacije
                             using (MemoryStream ms = new MemoryStream(rezervacijaBytes, 0, primljeno))
@@ -270,21 +293,27 @@ namespace Server4
                                 BinaryFormatter formatter = new BinaryFormatter();
                                 var rezervacije = (Dictionary<int, Tuple<int, string>>)formatter.Deserialize(ms);
 
-                                // upiši u lokalnu strukturu
                                 foreach (var r in rezervacije)
                                 {
                                     RezervacijeStolova.rezervacije[r.Key] = r.Value;
+                                    foreach (var sto in StoloviRepozitorijum.stolovi)
+                                    {
+                                        if (sto.brStola == r.Key)
+                                        {
+                                            sto.status = StatusSto.REZERVISAN;
+                                            Console.WriteLine($"{"[INFO]",-18} Rezervacija uspešno primljena za sto broj: {r.Key}\n");
+                                        }
+                                    }
+                                    //ispis stolova
+                                    StoloviRepozitorijum.IspisiStolove();
                                 }
-
-                                Console.WriteLine("Rezervacija uspešno primljena.");
                             }
-                            Console.WriteLine(RezervacijeStolova.RezervacijeToString());
                         }
                         #endregion
                     }
                     catch (SocketException ex)
                     {
-                        Console.WriteLine($"Doslo je do greske {ex}");
+                        Console.WriteLine($"{"[GRESKA]",-18} Doslo je do greske: " + ex.Message);
                         break;
                     }
                 }
@@ -319,7 +348,8 @@ namespace Server4
                             //posalji za koji sto su porudzbine gotove
                             byte[] data = BitConverter.GetBytes(sto.brStola);
                             konobarPoStolu[brojStola].Send(data);
-                            Console.WriteLine($"{"[SALJEM KONOBARU]",-18} Porudzbine poslate nazad konobaru.");
+                            Console.WriteLine($"{"[SALJEM KONOBARU]",-18} Porudzbine poslate nazad konobaru za sto broj: " + brojStola);
+                            StoloviRepozitorijum.IspisiStolove();
                         }
                     }
                 }
@@ -343,7 +373,11 @@ namespace Server4
                             foreach (Porudzbina por in st.porudzbine)
                             {
                                 if (por.nazivArtikla == p.nazivArtikla)
+                                {
                                     por.status = StatusPorudzbina.SPREMNO;
+                                    Console.WriteLine($"\n{"[SPREMNA PORUDZBINA]",-18} " + p.nazivArtikla + " - " + p.status);
+
+                                }
                             }
                         }
                     }
@@ -386,8 +420,9 @@ namespace Server4
                         osoblje[klijent].status = StatusOsoblja.ZAUZET;
                         p.status = StatusPorudzbina.U_PRIPREMI;
                         //posalji kuvaru
-                        ms.SetLength(0);
+                        //ms.SetLength(0);
                         formatter.Serialize(ms, p);
+                        //ToArray -> pretvara serializovani objekat iz ms u niz bajtova kako bi se slalo preko uticnice
                         byte[] data = ms.ToArray();
                         klijent.Send(data);
                         return true;
@@ -433,7 +468,7 @@ namespace Server4
         }
         private static Sto DeserializacijaStola(byte[] buffer, int brBajtaUDP, List<Sto> stolovi)
         {
-            
+
             using (MemoryStream ms = new MemoryStream(buffer, 0, brBajtaUDP))
             {
                 BinaryFormatter formatter = new BinaryFormatter();
@@ -478,5 +513,5 @@ namespace Server4
             }
         }
     }
-    
+
 }
