@@ -375,7 +375,7 @@ namespace Server4
                                 if (por.nazivArtikla == p.nazivArtikla)
                                 {
                                     por.status = StatusPorudzbina.SPREMNO;
-                                    Console.WriteLine($"\n{"[SPREMNA PORUDZBINA]",-18} " + p.nazivArtikla + " - " + p.status);
+                                    Console.WriteLine($"\n{"[SPREMNA PORUDZ.]",-18} " + p.nazivArtikla + " - " + p.status);
 
                                 }
                             }

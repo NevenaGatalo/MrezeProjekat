@@ -46,8 +46,6 @@ namespace Konobar
             bool radi = true;
             while (radi)
             {
-
-
                 //task za primanje isteklih porudzbina
                 Task.Run(() =>
                 {
@@ -247,7 +245,6 @@ namespace Konobar
         }
         private static int UnosRezervacije()
         {
-            //Console.WriteLine("Izaberite sto koji zelite da rezervisete:");
             int brStola;
 
             do

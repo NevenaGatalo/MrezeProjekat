@@ -66,28 +66,6 @@ namespace Kuvar
                         Console.WriteLine($"{"[SLANJE]",-12} Porudzbina prosledjena serveru.");
                     }
                     Console.WriteLine("===================================================================");
-                        ////prima listu porudzbina koje treba da napravi
-                        //BinaryFormatter bf = new BinaryFormatter();
-                        //List<Porudzbina> primljenePorudzbine = bf.Deserialize(ms) as List<Porudzbina>;
-                        //foreach (var p in primljenePorudzbine)
-                        //{
-                        //    //proverava da li je porudzbina hrana
-                        //    if(p.kategorija == Kategorija.HRANA)
-                        //    {
-                        //        p.status = StatusPorudzbina.SPREMNO;
-                        //    }
-                        //}
-
-                        ////salje listu spremljenih porudzbina serveru
-                        //BinaryFormatter formatter = new BinaryFormatter();
-                        //using (MemoryStream mst = new MemoryStream())
-                        //{
-                        //    formatter.Serialize(mst, primljenePorudzbine);
-                        //    byte[] data = mst.ToArray();
-
-                        //    clientSocketTCP.Send(data);
-                        //    Console.WriteLine("Porudzbine spremne i prosledjene serveru");
-                        //}
                     
                 }
                 catch (Exception ex)
