@@ -43,7 +43,7 @@ namespace Biblioteka
                     if (s.brStola == sto)
                     {
                         s.status = StatusSto.SLOBODAN;
-                        Console.WriteLine("oslobodjen sto br: " + s.brStola + " status: " + s.status);
+                        //Console.WriteLine("oslobodjen sto br: " + s.brStola + " status: " + s.status);
                         break;
                     }
                 }

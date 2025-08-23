@@ -20,19 +20,20 @@ namespace Konobar
         {
 
             Socket clientSocketTCP = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50001);
+            IPEndPoint destinationEPTcp = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50001);
 
             //udp socket za stanje stolova
             Socket clientSocketStanjeStolovaUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint destinationEPStanjeStolova = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50002);
+            IPEndPoint destinationEPStanjeStolova = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50002);
            
             EndPoint posiljaocStanjeStolovaEP = new IPEndPoint(IPAddress.Any, 0);
 
             //udp socket za slanje rezervacija
             Socket clientSocketRezevacijeUDP = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint destinationEPRezervacije = new IPEndPoint(IPAddress.Parse("192.168.100.8"), 50003);
+            IPEndPoint destinationEPRezervacije = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 50003);
 
             EndPoint posiljaocRezervacijeEP = new IPEndPoint(IPAddress.Any, 0);
+
 
             Console.WriteLine("Konobar je spreman za povezivanje sa serverom, kliknite enter");
             Console.ReadKey();
@@ -70,7 +71,7 @@ namespace Konobar
                                         if (item == s.brStola && s.status == StatusSto.REZERVISAN)
                                         {
                                             s.status = StatusSto.SLOBODAN;
-                                            Console.WriteLine("\n[INFO] Istekla rezervacija za sto: " + s.brStola);
+                                            Console.WriteLine($"\n{"[INFO]",-18} Istekla rezervacija za sto: " + s.brStola);
                                             StoloviRepozitorijum.IspisiStolove();
                                         }
                                     }
@@ -80,6 +81,7 @@ namespace Konobar
                         catch (SocketException) { }
                     }
                 });
+
 
                 //meni
                 int opcija = Meni();

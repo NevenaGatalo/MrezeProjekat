@@ -47,20 +47,10 @@ namespace Server4
             Console.WriteLine($"{"[INFO]",-18} Server je stavljen u stanje osluskivanja i ocekuje komunikaciju na {serverEPTCP}\n");
 
 
-            //List<Sto> stolovi = new List<Sto>()
-            //{
-            //    new Sto() {brStola=1, brGostiju = 0, status = StatusSto.SLOBODAN},
-            //    new Sto() {brStola=2, brGostiju = 0, status = StatusSto.SLOBODAN},
-            //    new Sto() {brStola=3, brGostiju = 0, status = StatusSto.SLOBODAN},
-            //    new Sto() {brStola=4, brGostiju = 0, status = StatusSto.SLOBODAN},
-            //    new Sto() {brStola=5, brGostiju = 0, status = StatusSto.SLOBODAN}
-            //};
-
             List<Socket> acceptedSockets = new List<Socket>();
             //Dictionary<Socket, Osoblje> osoblje = new Dictionary<Socket, Osoblje>();
             List<Porudzbina> porudzbine = new List<Porudzbina>();
             Dictionary<int, Socket> konobarPoStolu = new Dictionary<int, Socket>();
-            //List<Porudzbina> neobradjenePorudzbine = new List<Porudzbina>();
 
             //lista endpointova konobara koji su se obratili
             List<EndPoint> konobariEndPoints = new List<EndPoint>();
@@ -73,7 +63,6 @@ namespace Server4
                 {
                     Thread.Sleep(5000); // proverava svakih 5 sekundi
                     int simuliraniSat = (int)(DateTime.Now - vremePocetka).TotalMinutes;
-                    //Console.WriteLine(RezervacijeStolova.RezervacijeToString());
                     List<int> zaBrisanje = RezervacijeStolova.OčistiIstekleRezervacije(simuliraniSat);
                     //posalji listu isteklih rezervacija ako postoji neka istekla rezervacija
                     if (zaBrisanje.Count != 0)
@@ -87,7 +76,6 @@ namespace Server4
                             foreach (var ep in konobariEndPoints)
                             {
                                 int bytesSent = serverSocketRezervacijeUDP.SendTo(data, 0, data.Length, SocketFlags.None, ep);
-                                //Console.WriteLine($"Poslato {bytesSent} bajtova konobaru {ep}");
                             }
                             //ispis stolova
                             Console.WriteLine($"{"[INFO]",-18} Istekla rezervacija za sto: {string.Join(", ", zaBrisanje)}\n");
@@ -265,9 +253,6 @@ namespace Server4
                                                 neobradjenePorudzbine.Add(p);
                                             }
                                         }
-                                        //dodaj u neobradjene porudzbine
-                                        //if (p.status != StatusPorudzbina.U_PRIPREMI)
-                                        //    neobradjenePorudzbine.Add(p);
                                     }
                                     porudzbine = neobradjenePorudzbine;
                                 }
@@ -358,7 +343,6 @@ namespace Server4
         }
         private static bool PrimiGotovuPorudzbinu(int brPrimljenihBajtova, List<Sto> stolovi, byte[] bufferPorudzbina)
         {
-            //byte[] bufferPorudzbina = new byte[1024];
             if (brPrimljenihBajtova > 0)
             {
                 using (MemoryStream ms = new MemoryStream(bufferPorudzbina, 0, brPrimljenihBajtova))
@@ -512,6 +496,7 @@ namespace Server4
                 }
             }
         }
+
     }
 
 }
